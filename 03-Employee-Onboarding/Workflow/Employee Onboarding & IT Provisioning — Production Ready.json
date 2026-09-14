@@ -1,0 +1,1160 @@
+{
+  "name": "Employee Onboarding & IT Provisioning — Production Ready",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1FiLvb6hxTaPelvsjp33jAfPWMDpbSp4G9BU0C0cGyps",
+          "mode": "list",
+          "cachedResultName": "New Hire Response",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FiLvb6hxTaPelvsjp33jAfPWMDpbSp4G9BU0C0cGyps/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1690630614,
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FiLvb6hxTaPelvsjp33jAfPWMDpbSp4G9BU0C0cGyps/edit#gid=1690630614"
+        },
+        "includeInOutput": "both",
+        "options": {}
+      },
+      "id": "23f4ae95-116d-47aa-9ebb-e24d5fbac279",
+      "name": "📋 Google Sheets Trigger",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1808,
+        352
+      ],
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "xUBBPUB0qnXo733U",
+          "name": "Google Sheets Trigger account"
+        }
+      },
+      "notes": "SETUP: Replace REPLACE_WITH_YOUR_SPREADSHEET_ID with the ID from your Google Sheets URL. The ID is the long string between /d/ and /edit in the URL. Set your Google OAuth2 credential name above."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "employee_name",
+              "value": "={{ $json[\"Employee Full Name\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "first_name",
+              "value": "={{ $json[\"Employee Full Name\"].split(\" \")[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "personal_email",
+              "value": "={{ $json[\"Personal Email Address\"].toLowerCase().trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "work_email",
+              "value": "={{ $json[\"Work Email to Provision\"].toLowerCase().trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "a5",
+              "name": "department",
+              "value": "={{ $json[\"Department\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "a6",
+              "name": "job_title",
+              "value": "={{ $json[\"Job Title\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "a7",
+              "name": "start_date",
+              "value": "={{ $json[\"Start Date\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "a8",
+              "name": "employee_type",
+              "value": "={{ $json['Employee Type'] }}",
+              "type": "string"
+            },
+            {
+              "id": "a9",
+              "name": "manager_name",
+              "value": "={{ $json[\"Manager Full Name\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "a10",
+              "name": "manager_email",
+              "value": "={{ $json[\"Manager Email\"].toLowerCase().trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "a11",
+              "name": "it_equipment",
+              "value": "={{ $json[\"IT Equipment Needed\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "a12",
+              "name": "work_location",
+              "value": "={{ $json[\"Remote or In-Office\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "a13",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "a14",
+              "name": "workflow_id",
+              "value": "={{ \"ONB-\" + $now.toFormat(\"yyyyMMdd-HHmm\") }}",
+              "type": "string"
+            },
+            {
+              "id": "a15",
+              "name": "start_date_iso",
+              "value": "={{ DateTime.fromMillis((Number($json[\"Start Date\"]) - 25569) * 86400 * 1000).toISODate() }}",
+              "type": "string"
+            },
+            {
+              "id": "a16",
+              "name": "week1_date_iso",
+              "value": "={{ DateTime.fromMillis((Number($json[\"Start Date\"]) - 25569) * 86400 * 1000).plus({ days: 4 }).toISODate() }}",
+              "type": "string"
+            },
+            {
+              "id": "a17",
+              "name": "reminder_date_iso",
+              "value": "={{ DateTime.fromMillis((Number($json[\"Start Date\"]) - 25569) * 86400 * 1000).minus({ days: 2 }).toISODate() }}",
+              "type": "string"
+            },
+            {
+              "id": "a18",
+              "name": "email_status",
+              "value": "⏳ Pending",
+              "type": "string"
+            },
+            {
+              "id": "a19",
+              "name": "calendar_status",
+              "value": "⏳ Pending",
+              "type": "string"
+            },
+            {
+              "id": "a20",
+              "name": "slack_status",
+              "value": "⏳ Pending",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f57e4db2-b386-4c77-b2ce-041bd9e54964",
+      "name": "⚙️ Normalize & Enrich Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1392,
+        352
+      ],
+      "notes": "SETUP: Update the field names in brackets to match your exact Google Form question text. E.g. if your form says 'Full Name' change 'Employee Full Name' to 'Full Name'. Also update the date format in start_date_iso if your form uses a different date format."
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1FiLvb6hxTaPelvsjp33jAfPWMDpbSp4G9BU0C0cGyps",
+          "mode": "list",
+          "cachedResultName": "New Hire Response",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FiLvb6hxTaPelvsjp33jAfPWMDpbSp4G9BU0C0cGyps/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 499703686,
+          "mode": "list",
+          "cachedResultName": "Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FiLvb6hxTaPelvsjp33jAfPWMDpbSp4G9BU0C0cGyps/edit#gid=499703686"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Work Email",
+              "lookupValue": "={{ $json.work_email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b5f1e8b1-65ee-4660-82e8-9d29ea776356",
+      "name": "🔍 Duplicate Check",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -848,
+        192
+      ],
+      "alwaysOutputData": true,
+      "retryOnFail": false,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "xdDP8DtQWek8N5jK",
+          "name": "Google Sheets account"
+        }
+      },
+      "notes": "SETUP: Replace REPLACE_WITH_YOUR_TRACKER_SPREADSHEET_ID with your Onboarding Tracker sheet ID. Make sure the sheet tab is named 'Tracker' and has a column header 'Work Email'."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-01",
+              "leftValue": "={{ $json['Work Email'] }}",
+              "rightValue": "0",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "887b6653-ea97-451d-b00e-fb0836d6bec6",
+      "name": "🔀 Is New Employee?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -624,
+        192
+      ],
+      "notes": "TRUE (no match found) → Continue to onboarding. FALSE (already exists) → Route to duplicate alert email."
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('⚙️ Normalize & Enrich Data').item.json.personal_email }}",
+        "subject": "⚠️ Onboarding skipped — {{ $('⚙️ Normalize & Enrich Data').item.json.employee_name }} already provisioned [{{ $('⚙️ Normalize & Enrich Data').item.json.workflow_id }}]",
+        "message": "<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:auto\">\n  <div style=\"background:#d63031;padding:24px;border-radius:8px 8px 0 0\">\n    <h2 style=\"color:#fff;margin:0\">⚠️ Duplicate Onboarding Detected</h2>\n  </div>\n  <div style=\"padding:24px;background:#fff5f5;border:1px solid #ffd5d5;border-top:none;border-radius:0 0 8px 8px\">\n    <p>The following employee already exists in the Onboarding Tracker:</p>\n    <table style=\"width:100%;border-collapse:collapse;background:#fff;border-radius:6px;border:1px solid #e2e2e8\">\n      <tr><td style=\"padding:10px 14px;color:#888;border-bottom:1px solid #f0f0f4;width:35%\">Employee</td>\n          <td style=\"padding:10px 14px;font-weight:600;border-bottom:1px solid #f0f0f4\">{{ $('⚙️ Normalize & Enrich Data').item.json.employee_name }}</td></tr>\n      <tr><td style=\"padding:10px 14px;color:#888;border-bottom:1px solid #f0f0f4\">Work Email</td>\n          <td style=\"padding:10px 14px;font-weight:600;border-bottom:1px solid #f0f0f4\">{{ $('⚙️ Normalize & Enrich Data').item.json.work_email }}</td></tr>\n      <tr><td style=\"padding:10px 14px;color:#888\">Ref ID</td>\n          <td style=\"padding:10px 14px;font-weight:600\">{{ $('⚙️ Normalize & Enrich Data').item.json.workflow_id }}</td></tr>\n    </table>\n    <p style=\"margin-top:16px;font-size:13px;color:#888\">No action was taken. If this is an error, please check the Onboarding Tracker and re-submit if needed.</p>\n  </div>\n</div>",
+        "options": {}
+      },
+      "id": "a4942eae-c2f5-4409-b14e-3dc8faaab056",
+      "name": "📧 Alert — Already Provisioned",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -336,
+        416
+      ],
+      "webhookId": "e57ed5fd-e369-4a38-9841-326b0a8789b7",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "v1",
+              "leftValue": "={{ $('⚙️ Normalize & Enrich Data').item.json.employee_name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "v2",
+              "leftValue": "={{ $('⚙️ Normalize & Enrich Data').item.json.personal_email }}",
+              "rightValue": "@",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "v3",
+              "leftValue": "={{ $('⚙️ Normalize & Enrich Data').item.json.work_email }}",
+              "rightValue": "@",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "v4",
+              "leftValue": "={{ $('⚙️ Normalize & Enrich Data').item.json.start_date }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "v5",
+              "leftValue": "={{ $('⚙️ Normalize & Enrich Data').item.json.manager_email }}",
+              "rightValue": "@",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "814f0663-99bc-4abf-9dc7-b07adfd37c1d",
+      "name": "✅ Validate Required Fields",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1200,
+        352
+      ],
+      "notes": "Checks: employee_name not empty, personal_email contains @, work_email contains @, start_date not empty, manager_email contains @. TRUE → proceed. FALSE → send validation error to HR."
+    },
+    {
+      "parameters": {
+        "sendTo": "=REPLACE_WITH_HR_EMAIL@yourcompany.com",
+        "subject": "❌ Onboarding Form Error — Missing Required Fields [{{ $('⚙️ Normalize & Enrich Data').item.json.workflow_id }}]",
+        "message": "<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:auto\">\n  <div style=\"background:#d63031;padding:24px;border-radius:8px 8px 0 0\">\n    <h2 style=\"color:#fff;margin:0\">❌ Onboarding Form Validation Failed</h2>\n  </div>\n  <div style=\"padding:24px;background:#fff5f5;border:1px solid #ffd5d5;border-top:none;border-radius:0 0 8px 8px\">\n    <p>An onboarding form submission was received but failed validation. <strong>No accounts were provisioned.</strong></p>\n    <p>Please review the submission and re-submit the form with all required fields:</p>\n    <ul>\n      <li>Employee Full Name</li>\n      <li>Personal Email Address (must contain @)</li>\n      <li>Work Email to Provision (must contain @)</li>\n      <li>Start Date</li>\n      <li>Manager Email (must contain @)</li>\n    </ul>\n    <table style=\"width:100%;border-collapse:collapse;background:#fff;border-radius:6px;border:1px solid #e2e2e8;margin-top:16px\">\n      <tr><td style=\"padding:10px 14px;color:#888;border-bottom:1px solid #f0f0f4;width:35%\">Submitted Name</td>\n          <td style=\"padding:10px 14px;font-weight:600;border-bottom:1px solid #f0f0f4\">{{ $('⚙️ Normalize & Enrich Data').item.json.employee_name || '(blank)' }}</td></tr>\n      <tr><td style=\"padding:10px 14px;color:#888;border-bottom:1px solid #f0f0f4\">Personal Email</td>\n          <td style=\"padding:10px 14px;border-bottom:1px solid #f0f0f4\">{{ $('⚙️ Normalize & Enrich Data').item.json.personal_email || '(blank)' }}</td></tr>\n      <tr><td style=\"padding:10px 14px;color:#888\">Ref ID</td>\n          <td style=\"padding:10px 14px\">{{ $('⚙️ Normalize & Enrich Data').item.json.workflow_id }}</td></tr>\n    </table>\n    <p style=\"margin-top:16px;font-size:13px;color:#888\">Automated by IT Onboarding System</p>\n  </div>\n</div>",
+        "options": {}
+      },
+      "id": "6098f357-8b83-4a81-83dd-bb9e5f7da0b7",
+      "name": "📧 Validation Error → HR",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -848,
+        512
+      ],
+      "webhookId": "80124e90-ee39-48ee-85aa-fdcc04e3b23e",
+      "onError": "continueErrorOutput",
+      "notes": "SETUP: Replace REPLACE_WITH_HR_EMAIL@yourcompany.com with the real HR team email address."
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('⚙️ Normalize & Enrich Data').item.json.department }}",
+                    "rightValue": "Engineering / Product",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "0ed0eb53-ae1b-4a60-9e2a-54948a11dc56"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Engineering / Product"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('⚙️ Normalize & Enrich Data').item.json.department }}",
+                    "rightValue": "Sales",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "b511b2ae-c632-4995-a9ca-1e94fa77bbfb"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Sales"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('⚙️ Normalize & Enrich Data').item.json.department }}",
+                    "rightValue": "Human Resources",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "6f1c265b-387a-47c8-bf06-2f43d079b535"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Human Resources"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "343c9847-b1a1-4586-a21f-1419ec065b36",
+                    "leftValue": "={{ $('⚙️ Normalize & Enrich Data').item.json.department }}",
+                    "rightValue": "Finance & Accounting",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Finance & Accounting"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "93b101a4-61ea-43de-80c6-19f41596b8e5",
+      "name": "🔀 Department Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -336,
+        -96
+      ],
+      "notes": "Routes based on department. Engineering → GitHub/dev setup email extras. Sales → CRM access extras. Finance → compliance extras. All other departments → Default path. You can add more departments by adding cases."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dept-sales",
+              "name": "=dept_extra_content",
+              "value": "={{\n$('If').item.json.Department === 'Sales'\n? `\n<h3 style=\"color:#52525c;font-size:14px\">📈 Sales Department</h3>\n\n<h4 style=\"color:#52525c;font-size:13px\">📚 Getting Started</h4>\n<ul>\n  <li>Company handbook: <a href=\"REPLACE_WITH_HANDBOOK_LINK\">Click here</a></li>\n  <li>CRM access (HubSpot/Salesforce): <a href=\"REPLACE_WITH_CRM_LINK\">Login here</a></li>\n  <li>Sales playbook: <a href=\"REPLACE_WITH_PLAYBOOK_LINK\">View guide</a></li>\n</ul>\n\n<h4 style=\"color:#52525c;font-size:13px\">💼 Sales Tools</h4>\n<ul>\n  <li>Lead tracking system</li>\n  <li>Proposal & quotation templates</li>\n  <li>Pricing & discount policy</li>\n</ul>\n\n<h4 style=\"color:#52525c;font-size:13px\">📞 Key Contacts</h4>\n<ul>\n  <li>Sales Manager: REPLACE_WITH_NAME</li>\n  <li>Regional Lead: REPLACE_WITH_NAME</li>\n  <li>Sales Support: REPLACE_WITH_EMAIL</li>\n</ul>\n`\n:\n''\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9d8bb76f-a058-4263-9638-1e7ec9e2ccc0",
+      "name": "📝 Sales Email Extras",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        64,
+        -224
+      ],
+      "notes": "SETUP: Replace the placeholder links with your real Sales resources."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dept-default",
+              "name": "dept_extra_content",
+              "value": "<h3 style=\"color:#52525c;font-size:14px\">📚 Getting Started</h3><ul><li>Company handbook: <a href=\"REPLACE_WITH_HANDBOOK_LINK\">Click here</a></li><li>IT support portal: <a href=\"REPLACE_WITH_IT_PORTAL_LINK\">Submit tickets here</a></li><li>Team directory: <a href=\"REPLACE_WITH_DIRECTORY_LINK\">Click here</a></li></ul>",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "153a5ea8-78a3-4183-bf4e-adbeaa8d0dd6",
+      "name": "📝 Default Email Extras",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        64,
+        304
+      ],
+      "notes": "SETUP: Replace with your company handbook, IT portal, and directory links."
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('⚙️ Normalize & Enrich Data').item.json.personal_email }}",
+        "subject": "=🎉 Welcome to the team, {{ $('⚙️ Normalize & Enrich Data').item.json.first_name }}! Everything you need for Day 1",
+        "message": "=<div style=\"font-family:'Segoe UI',Arial,sans-serif;max-width:600px;margin:auto;color:#1a1714\">\n\n  <!-- Header -->\n  <div style=\"background:#0d0d0f;padding:32px 32px 24px;border-radius:10px 10px 0 0\">\n    <h1 style=\"color:#ffffff;margin:0 0 6px;font-size:26px;font-weight:700\">Welcome, {{ $('⚙️ Normalize & Enrich Data').item.json.first_name }}! 🎉</h1>\n    <p style=\"color:rgba(255,255,255,0.5);margin:0;font-size:13px\">Ref: {{ $('⚙️ Normalize & Enrich Data').item.json.workflow_id }} · Automated IT Onboarding</p>\n  </div>\n\n  <!-- Body -->\n  <div style=\"padding:28px 32px;background:#fafafa;border:1px solid #e2e2e8;border-top:none\">\n    <p style=\"font-size:15px;line-height:1.7;margin:0 0 20px\">We're thrilled to have you join us as our new <strong>{{ $('⚙️ Normalize & Enrich Data').item.json.job_title }}</strong> in the <strong>{{ $('⚙️ Normalize & Enrich Data').item.json.department }}</strong> team. Everything has been set up for your first day.</p>\n\n    <!-- Details Table -->\n    <table style=\"width:100%;border-collapse:collapse;background:#ffffff;border-radius:8px;border:1px solid #e2e2e8;margin-bottom:24px\">\n      <tr>\n        <td style=\"padding:11px 16px;border-bottom:1px solid #f0f0f4;color:#888;font-size:13px;width:38%\">📅 Start Date</td>\n        <td style=\"padding:11px 16px;border-bottom:1px solid #f0f0f4;font-weight:600\">{{ $('⚙️ Normalize & Enrich Data').item.json.start_date }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:11px 16px;border-bottom:1px solid #f0f0f4;color:#888;font-size:13px\">💼 Job Title</td>\n        <td style=\"padding:11px 16px;border-bottom:1px solid #f0f0f4;font-weight:600\">{{ $('⚙️ Normalize & Enrich Data').item.json.job_title }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:11px 16px;border-bottom:1px solid #f0f0f4;color:#888;font-size:13px\">🏢 Department</td>\n        <td style=\"padding:11px 16px;border-bottom:1px solid #f0f0f4;font-weight:600\">{{ $('⚙️ Normalize & Enrich Data').item.json.department }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:11px 16px;border-bottom:1px solid #f0f0f4;color:#888;font-size:13px\">👔 Your Manager</td>\n        <td style=\"padding:11px 16px;border-bottom:1px solid #f0f0f4;font-weight:600\">{{ $('⚙️ Normalize & Enrich Data').item.json.manager_name }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:11px 16px;border-bottom:1px solid #f0f0f4;color:#888;font-size:13px\">📧 Work Email</td>\n        <td style=\"padding:11px 16px;border-bottom:1px solid #f0f0f4;font-weight:600;color:#0052cc\">{{ $('⚙️ Normalize & Enrich Data').item.json.work_email }}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:11px 16px;color:#888;font-size:13px\">🌐 Work Style</td>\n        <td style=\"padding:11px 16px;font-weight:600\">{{ $('⚙️ Normalize & Enrich Data').item.json.work_location }}</td>\n      </tr>\n    </table>\n\n    <!-- What's Ready -->\n    <div style=\"background:#f0faf5;border:1px solid #b7dfc9;border-radius:8px;padding:16px 20px;margin-bottom:24px\">\n      <h3 style=\"margin:0 0 10px;font-size:13px;color:#006644;text-transform:uppercase;letter-spacing:.08em\">Already set up for you</h3>\n      <ul style=\"list-style:none;padding:0;margin:0\">\n        <li style=\"padding:6px 0;font-size:14px;border-bottom:1px solid #e0f0e8\">✅ Work email account provisioned</li>\n        <li style=\"padding:6px 0;font-size:14px;border-bottom:1px solid #e0f0e8\">✅ Day 1 orientation added to your calendar (9:00 AM)</li>\n        <li style=\"padding:6px 0;font-size:14px;border-bottom:1px solid #e0f0e8\">✅ Week 1 check-in with {{ $('⚙️ Normalize & Enrich Data').item.json.manager_name }} scheduled</li>\n        <li style=\"padding:6px 0;font-size:14px\">✅ Your manager has been notified of your start date</li>\n      </ul>\n    </div>\n\n    <!-- Department Specific Content -->\n    {{ $json.dept_extra_content }}\n\n    <!-- Footer -->\n    <p style=\"margin-top:24px;font-size:12px;color:#aaa;border-top:1px solid #f0f0f4;padding-top:16px\">This email was generated automatically by the IT Onboarding System · Ref: {{ $('⚙️ Normalize & Enrich Data').item.json.workflow_id }}</p>\n  </div>\n</div>",
+        "options": {}
+      },
+      "id": "9d0dfeb4-1a01-4daf-98af-b26ae19e732d",
+      "name": "✉️ Welcome Email → New Hire",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        496,
+        -48
+      ],
+      "webhookId": "fd3b76da-7fd1-4a39-8497-f89759a34443",
+      "onError": "continueErrorOutput",
+      "notes": "Sends HTML welcome email to the new hire's PERSONAL email (before their work account is active). The dept_extra_content field is injected from the department routing nodes above."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "es1",
+              "name": "email_status",
+              "value": "={{ $node['✉️ Welcome Email → New Hire'].error ? '❌ Failed' : '✅ Sent' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fc9ed77a-dd9d-40e2-9a9a-74e281e17553",
+      "name": "📊 Set Email Status",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        752,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list",
+          "cachedResultName": "primary"
+        },
+        "start": "={{ DateTime.fromISO($('⚙️ Normalize & Enrich Data').item.json.start_date_iso).set({hour: 9, minute: 0, second: 0}).toISO() }}",
+        "end": "={{ DateTime.fromISO($('⚙️ Normalize & Enrich Data').item.json.start_date_iso).set({hour: 10, minute: 0, second: 0}).toISO() }}",
+        "additionalFields": {
+          "attendees": [
+            {
+              "email": "={{ $('⚙️ Normalize & Enrich Data').item.json.personal_email }}"
+            },
+            {
+              "email": "={{ $('⚙️ Normalize & Enrich Data').item.json.manager_email }}"
+            }
+          ],
+          "description": "=Welcome {{ $('⚙️ Normalize & Enrich Data').item.json.employee_name }} to the team!\n\nRole: {{ $('⚙️ Normalize & Enrich Data').item.json.job_title }}\nDepartment: {{ $('⚙️ Normalize & Enrich Data').item.json.department }}\nWork Style: {{ $('⚙️ Normalize & Enrich Data').item.json.work_location }}\nManager: {{ $('⚙️ Normalize & Enrich Data').item.json.manager_name }}\n\nAgenda:\n• Welcome & introductions (15 min)\n• Company overview & culture (15 min)\n• IT setup walkthrough (20 min)\n• Q&A (10 min)\n\nRef: {{ $('⚙️ Normalize & Enrich Data').item.json.workflow_id }}",
+          "sendUpdates": "all",
+          "summary": "=🎉 Day 1 Orientation — {{ $('⚙️ Normalize & Enrich Data').item.json.employee_name }}"
+        }
+      },
+      "id": "cdb3ed58-422a-4e8f-b949-a9a50409e259",
+      "name": "📅 Calendar — Day 1 Orientation",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        976,
+        -64
+      ],
+      "onError": "continueErrorOutput",
+      "notes": "Creates Day 1 orientation event at 9:00 AM on start_date. Attendees: new hire (personal email) + manager. Calendar invites are sent automatically via 'sendUpdates: all'."
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list",
+          "cachedResultName": "primary"
+        },
+        "start": "={{ DateTime.fromISO($('⚙️ Normalize & Enrich Data').item.json.week1_date_iso).set({hour: 14, minute: 0, second: 0}).toISO() }}",
+        "end": "={{ DateTime.fromISO($('⚙️ Normalize & Enrich Data').item.json.week1_date_iso).set({hour: 14, minute: 30, second: 0}).toISO() }}",
+        "additionalFields": {
+          "attendees": [
+            {
+              "email": "={{ $('⚙️ Normalize & Enrich Data').item.json.personal_email }}"
+            },
+            {
+              "email": "={{ $('⚙️ Normalize & Enrich Data').item.json.manager_email }}"
+            }
+          ],
+          "description": "=End-of-week-1 check-in for {{ $('⚙️ Normalize & Enrich Data').item.json.employee_name }}.\n\n30-minute informal catch-up:\n• How is the first week going?\n• Any blockers or questions?\n• What's going well?\n• Priorities for Week 2\n\nRef: {{ $('⚙️ Normalize & Enrich Data').item.json.workflow_id }}",
+          "sendUpdates": "all",
+          "summary": "=📋 Week 1 Check-in: {{ $('⚙️ Normalize & Enrich Data').item.json.first_name }} + {{ $('⚙️ Normalize & Enrich Data').item.json.manager_name }}"
+        }
+      },
+      "id": "7c20e663-4e88-486a-b427-12453555687a",
+      "name": "📅 Calendar — Week 1 Check-in",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        1232,
+        -80
+      ],
+      "onError": "continueErrorOutput",
+      "notes": "Creates Week 1 check-in at 2:00 PM on start_date + 4 days (end of first week). 30 minutes. Attendees: new hire + manager."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cs1",
+              "name": "calendar_status",
+              "value": "={{ ($node['📅 Calendar — Day 1 Orientation'].error || $node['📅 Calendar — Week 1 Check-in'].error) ? '❌ Failed' : '✅ Created (Day 1 + Week 1)' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7417df92-3415-448a-b5d8-3e76804922fd",
+      "name": "📊 Set Calendar Status",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1488,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_SLACK_CHANNEL_ID",
+          "mode": "id"
+        },
+        "text": "=🎉 *New Hire Onboarded — Ref: {{ $('⚙️ Normalize & Enrich Data').item.json.workflow_id }}*\n\n*👤 Employee:*    {{ $('⚙️ Normalize & Enrich Data').item.json.employee_name }}\n*💼 Role:*         {{ $('⚙️ Normalize & Enrich Data').item.json.job_title }} — {{ $('⚙️ Normalize & Enrich Data').item.json.department }}\n*📅 Start Date:*  {{ $('⚙️ Normalize & Enrich Data').item.json.start_date }}  ({{ $('⚙️ Normalize & Enrich Data').item.json.work_location }})\n*📧 Work Email:* {{ $('⚙️ Normalize & Enrich Data').item.json.work_email }}\n*👔 Manager:*    {{ $('⚙️ Normalize & Enrich Data').item.json.manager_name }}\n*🖥️ Equipment:*   {{ $('⚙️ Normalize & Enrich Data').item.json.it_equipment || 'Not specified' }}\n\n*Provisioning Status:*\n{{ $('📊 Set Email Status').item.json.email_status }} Welcome email → personal inbox\n{{ $('📊 Set Calendar Status').item.json.calendar_status }} Calendar events (Day 1 + Week 1)\n✅ Onboarding tracker updated\n\n_Automated by IT Onboarding System · n8n_",
+        "otherOptions": {}
+      },
+      "id": "1eb754e1-30de-4639-8db8-d92e0120aa06",
+      "name": "💬 Slack → Manager Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1728,
+        -96
+      ],
+      "webhookId": "d5eff304-c9b7-4aa0-a9a8-e44b5ce390db",
+      "onError": "continueErrorOutput",
+      "notes": "SETUP: Replace REPLACE_WITH_SLACK_CHANNEL_ID with your Slack channel ID. To get channel ID: right-click channel name in Slack → View Channel Details → scroll to bottom to see ID (starts with C...)."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ss1",
+              "name": "slack_status",
+              "value": "={{ $node['💬 Slack → Manager Alert'].error ? '❌ Failed' : '✅ Sent' }}",
+              "type": "string"
+            },
+            {
+              "id": "ss2",
+              "name": "overall_status",
+              "value": "={{ [$('📊 Set Email Status').item.json.email_status, $('📊 Set Calendar Status').item.json.calendar_status].every(s => s.startsWith('✅')) ? '✅ Fully Provisioned' : '⚠️ Partial — Check Log' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f2d68af5-29f3-4da0-9246-c0fbac330f28",
+      "name": "📊 Set Final Status",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1968,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_TRACKER_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Tracker",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "4d90c4fa-a60a-4500-8a32-6151831b6477",
+      "name": "📊 Log → Onboarding Tracker",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2208,
+        -112
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "xdDP8DtQWek8N5jK",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "notes": "SETUP: Replace REPLACE_WITH_YOUR_TRACKER_SPREADSHEET_ID with your Tracker sheet ID. The sheet tab must be named 'Tracker'. Row 1 must contain these headers exactly: Workflow ID, Timestamp, Employee Name, Job Title, Department, Employment Type, Start Date, Work Email, Personal Email, Manager, Manager Email, Work Location, IT Equipment, Welcome Email, Calendar Events, Slack Notification, Overall Status, Notes"
+    },
+    {
+      "parameters": {
+        "sendTo": "=REPLACE_WITH_HR_EMAIL@yourcompany.com",
+        "subject": "={{ $json.overall_status }} Onboarding Complete — {{ $('⚙️ Normalize & Enrich Data').item.json.employee_name }} [{{ $('⚙️ Normalize & Enrich Data').item.json.workflow_id }}]",
+        "message": "=<div style=\"font-family:'Segoe UI',Arial,sans-serif;max-width:600px;margin:auto;color:#1a1714\">\n  <div style=\"background:#0d0d0f;padding:28px 32px;border-radius:10px 10px 0 0\">\n    <h2 style=\"color:#fff;margin:0 0 6px;font-size:20px\">{{ $json.overall_status }} Onboarding Provisioning Report</h2>\n    <p style=\"color:rgba(255,255,255,0.4);margin:0;font-size:12px\">Ref: {{ $('⚙️ Normalize & Enrich Data').item.json.workflow_id }} · {{ $('⚙️ Normalize & Enrich Data').item.json.timestamp }}</p>\n  </div>\n  <div style=\"padding:28px 32px;background:#fafafa;border:1px solid #e2e2e8;border-top:none;border-radius:0 0 10px 10px\">\n    <table style=\"width:100%;border-collapse:collapse;background:#fff;border-radius:8px;border:1px solid #e2e2e8;margin-bottom:20px\">\n      <tr><td style=\"padding:10px 14px;color:#888;font-size:13px;border-bottom:1px solid #f0f0f4;width:38%\">Employee</td>\n          <td style=\"padding:10px 14px;font-weight:600;border-bottom:1px solid #f0f0f4\">{{ $('⚙️ Normalize & Enrich Data').item.json.employee_name }}</td></tr>\n      <tr><td style=\"padding:10px 14px;color:#888;font-size:13px;border-bottom:1px solid #f0f0f4\">Role</td>\n          <td style=\"padding:10px 14px;border-bottom:1px solid #f0f0f4\">{{ $('⚙️ Normalize & Enrich Data').item.json.job_title }} — {{ $('⚙️ Normalize & Enrich Data').item.json.department }}</td></tr>\n      <tr><td style=\"padding:10px 14px;color:#888;font-size:13px;border-bottom:1px solid #f0f0f4\">Start Date</td>\n          <td style=\"padding:10px 14px;font-weight:600;border-bottom:1px solid #f0f0f4\">{{ $('⚙️ Normalize & Enrich Data').item.json.start_date }}</td></tr>\n      <tr><td style=\"padding:10px 14px;color:#888;font-size:13px;border-bottom:1px solid #f0f0f4\">Work Email</td>\n          <td style=\"padding:10px 14px;border-bottom:1px solid #f0f0f4;color:#0052cc\">{{ $('⚙️ Normalize & Enrich Data').item.json.work_email }}</td></tr>\n      <tr><td style=\"padding:10px 14px;color:#888;font-size:13px\">Manager</td>\n          <td style=\"padding:10px 14px\">{{ $('⚙️ Normalize & Enrich Data').item.json.manager_name }}</td></tr>\n    </table>\n\n    <div style=\"background:#f0faf5;border:1px solid #b7dfc9;border-radius:8px;padding:14px 18px;margin-bottom:20px\">\n      <h3 style=\"margin:0 0 10px;font-size:12px;color:#006644;text-transform:uppercase;letter-spacing:.08em\">Provisioning Summary</h3>\n      <p style=\"margin:4px 0;font-size:14px\">{{ $('📊 Set Email Status').item.json.email_status }} Welcome email sent to personal inbox</p>\n      <p style=\"margin:4px 0;font-size:14px\">{{ $('📊 Set Calendar Status').item.json.calendar_status }} Calendar events created</p>\n      <p style=\"margin:4px 0;font-size:14px\">{{ $json.slack_status }} Slack notification sent to HR channel</p>\n      <p style=\"margin:4px 0;font-size:14px\">✅ Logged to Onboarding Tracker</p>\n    </div>\n\n    <p style=\"font-size:13px;color:#888\">View the <a href=\"https://docs.google.com/spreadsheets/d/REPLACE_WITH_YOUR_TRACKER_SPREADSHEET_ID\" style=\"color:#0052cc\">Onboarding Tracker</a> for the full audit log.</p>\n    <p style=\"font-size:12px;color:#aaa;border-top:1px solid #f0f0f4;padding-top:14px;margin-top:14px\">Automated by IT Onboarding System · n8n · {{ $('⚙️ Normalize & Enrich Data').item.json.workflow_id }}</p>\n  </div>\n</div>",
+        "options": {}
+      },
+      "id": "91194326-97c5-4065-b0a5-2cc060200fcf",
+      "name": "📧 HR Completion Report",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2448,
+        -128
+      ],
+      "webhookId": "74f664ab-5999-4443-bd9a-f7b451548e80",
+      "onError": "continueErrorOutput",
+      "notes": "SETUP: Replace REPLACE_WITH_HR_EMAIL@yourcompany.com with real HR email. Replace REPLACE_WITH_YOUR_TRACKER_SPREADSHEET_ID in the tracker link inside the email body."
+    },
+    {
+      "parameters": {
+        "jsCode": "return [$input.last()];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1600,
+        352
+      ],
+      "id": "67491fc4-e061-4850-b090-795f63b5a470",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dept-eng",
+              "name": "dept_extra_content",
+              "value": "={{\n$('If').item.json.Department === 'Engineering / Product'\n? `\n<h3 style=\"color:#52525c;font-size:14px\">💻 Engineering / Product Department</h3>\n\n<h4 style=\"color:#52525c;font-size:13px\">📚 Getting Started</h4>\n<ul>\n  <li>Company handbook: <a href=\"REPLACE_WITH_HANDBOOK_LINK\">Click here</a></li>\n  <li>Project management tool: <a href=\"REPLACE_WITH_JIRA_ASANA_LINK\">Access here</a></li>\n  <li>Team directory: <a href=\"REPLACE_WITH_DIRECTORY_LINK\">View team</a></li>\n</ul>\n\n<h4 style=\"color:#52525c;font-size:13px\">🛠 Engineering Tools</h4>\n<ul>\n  <li>Source Code Repository (GitHub/GitLab): <a href=\"REPLACE_WITH_REPO_LINK\">Open repository</a></li>\n  <li>Development setup guide: <a href=\"REPLACE_WITH_SETUP_GUIDE_LINK\">View guide</a></li>\n  <li>API documentation: <a href=\"REPLACE_WITH_API_DOCS_LINK\">Read docs</a></li>\n  <li>CI/CD Dashboard: <a href=\"REPLACE_WITH_CICD_LINK\">Access pipeline</a></li>\n</ul>\n\n<h4 style=\"color:#52525c;font-size:13px\">🔐 Security & Access</h4>\n<ul>\n  <li>Enable MFA for all accounts</li>\n  <li>Use company approved password manager</li>\n  <li>Follow secure coding guidelines</li>\n</ul>\n\n<h4 style=\"color:#52525c;font-size:13px\">👥 Key Contacts</h4>\n<ul>\n  <li>Engineering Manager: REPLACE_WITH_NAME</li>\n  <li>Tech Lead: REPLACE_WITH_NAME</li>\n  <li>DevOps Engineer: REPLACE_WITH_NAME</li>\n</ul>\n`\n:\n''\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "127937e1-506a-4db9-bfb3-d2026c0959d2",
+      "name": "📝 Engineering / Product Email Extras",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        64,
+        -416
+      ],
+      "notes": "SETUP: Replace REPLACE_WITH_DEV_SETUP_LINK and REPLACE_WITH_TECH_DOCS_LINK with real URLs."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dept-fin",
+              "name": "dept_extra_content",
+              "value": "={{\n$('If').item.json.Department === 'Human Resources'\n? `\n<h3 style=\"color:#52525c;font-size:14px\">👥 Human Resources Department</h3>\n\n<h4 style=\"color:#52525c;font-size:13px\">📚 Getting Started</h4>\n<ul>\n  <li>Employee handbook: <a href=\"REPLACE_WITH_HANDBOOK_LINK\">Click here</a></li>\n  <li>HR portal: <a href=\"REPLACE_WITH_HR_PORTAL_LINK\">Access here</a></li>\n  <li>Org chart: <a href=\"REPLACE_WITH_ORG_CHART_LINK\">View structure</a></li>\n</ul>\n\n<h4 style=\"color:#52525c;font-size:13px\">📝 HR Processes</h4>\n<ul>\n  <li>Leave management system</li>\n  <li>Payroll & salary processing</li>\n  <li>Performance evaluation process</li>\n</ul>\n\n<h4 style=\"color:#52525c;font-size:13px\">🤝 Policies</h4>\n<ul>\n  <li>Code of conduct</li>\n  <li>Workplace ethics policy</li>\n  <li>Attendance & leave policy</li>\n</ul>\n\n<h4 style=\"color:#52525c;font-size:13px\">👥 HR Contacts</h4>\n<ul>\n  <li>HR Manager: REPLACE_WITH_NAME</li>\n  <li>Recruitment Officer: REPLACE_WITH_NAME</li>\n  <li>HR Email: REPLACE_WITH_EMAIL</li>\n</ul>\n`\n:\n''\n}} ",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "90c829ab-178c-44af-9a4b-dfa1f1463a29",
+      "name": "📝 Human Resources Email Extras",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        64,
+        -48
+      ],
+      "notes": "SETUP: Replace the placeholder links with your real Finance resources."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f40192ae-253e-472c-a66b-6379af233404",
+              "name": "dept_extra_content",
+              "value": "=",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        64,
+        128
+      ],
+      "id": "0572414c-36fe-41c2-bc05-7dd972d07cda",
+      "name": "📝 Finance & Accounting Email Extras"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "📋 Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "⚙️ Normalize & Enrich Data": {
+      "main": [
+        [
+          {
+            "node": "✅ Validate Required Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 Duplicate Check": {
+      "main": [
+        [
+          {
+            "node": "🔀 Is New Employee?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔀 Is New Employee?": {
+      "main": [
+        [
+          {
+            "node": "🔀 Department Router",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📧 Alert — Already Provisioned",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✅ Validate Required Fields": {
+      "main": [
+        [
+          {
+            "node": "🔍 Duplicate Check",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📧 Validation Error → HR",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔀 Department Router": {
+      "main": [
+        [
+          {
+            "node": "📝 Engineering / Product Email Extras",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📝 Sales Email Extras",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📝 Human Resources Email Extras",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📝 Finance & Accounting Email Extras",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "📝 Default Email Extras",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Sales Email Extras": {
+      "main": [
+        [
+          {
+            "node": "✉️ Welcome Email → New Hire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✉️ Welcome Email → New Hire": {
+      "main": [
+        [
+          {
+            "node": "📊 Set Email Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Set Email Status": {
+      "main": [
+        [
+          {
+            "node": "📅 Calendar — Day 1 Orientation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📅 Calendar — Day 1 Orientation": {
+      "main": [
+        [
+          {
+            "node": "📅 Calendar — Week 1 Check-in",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📅 Calendar — Week 1 Check-in": {
+      "main": [
+        [
+          {
+            "node": "📊 Set Calendar Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Set Calendar Status": {
+      "main": [
+        [
+          {
+            "node": "💬 Slack → Manager Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "💬 Slack → Manager Alert": {
+      "main": [
+        [
+          {
+            "node": "📊 Set Final Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Set Final Status": {
+      "main": [
+        [
+          {
+            "node": "📊 Log → Onboarding Tracker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📊 Log → Onboarding Tracker": {
+      "main": [
+        [
+          {
+            "node": "📧 HR Completion Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "⚙️ Normalize & Enrich Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Default Email Extras": {
+      "main": [
+        [
+          {
+            "node": "✉️ Welcome Email → New Hire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Engineering / Product Email Extras": {
+      "main": [
+        [
+          {
+            "node": "✉️ Welcome Email → New Hire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Human Resources Email Extras": {
+      "main": [
+        [
+          {
+            "node": "✉️ Welcome Email → New Hire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "📝 Finance & Accounting Email Extras": {
+      "main": [
+        [
+          {
+            "node": "✉️ Welcome Email → New Hire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "4618399c-de7a-4634-8e9e-4a3cf7571ce7",
+  "meta": {
+    "instanceId": "b5b91cf82136f2959b6478a685c25e40f397fcf16756705b1a28fe90b322fc76"
+  },
+  "nodeGroups": [],
+  "id": "OEBHKmGQzO5ylMaH",
+  "tags": [
+    {
+      "updatedAt": "2026-07-03T14:09:12.212Z",
+      "createdAt": "2026-07-03T14:09:12.212Z",
+      "id": "UW9TRQg20njx2xn1",
+      "name": "Production Ready"
+    },
+    {
+      "updatedAt": "2026-07-03T14:09:12.276Z",
+      "createdAt": "2026-07-03T14:09:12.276Z",
+      "id": "VF28NObrten7chtB",
+      "name": "HR Automation"
+    },
+    {
+      "updatedAt": "2026-07-03T14:09:12.286Z",
+      "createdAt": "2026-07-03T14:09:12.286Z",
+      "id": "gPUXkCdnl8WZ3htW",
+      "name": "Google Workspace"
+    },
+    {
+      "updatedAt": "2026-07-03T14:09:12.268Z",
+      "createdAt": "2026-07-03T14:09:12.268Z",
+      "id": "qRARzyqkihBkX8Sx",
+      "name": "Onboarding"
+    }
+  ]
+}

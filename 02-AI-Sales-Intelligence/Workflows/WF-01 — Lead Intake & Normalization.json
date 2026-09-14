@@ -1,0 +1,978 @@
+{
+  "name": "WF-01 — Lead Intake & Normalization",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        -320
+      ],
+      "id": "bbdcc034-8916-4c36-83bf-5c5714ace38f",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1dbwHoGDWCEbh3j50w4idR7WGzEN4Ovdvw5kAaLDvtPk",
+          "mode": "list",
+          "cachedResultName": "AI Sales CRM — Lead Intake Staging",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dbwHoGDWCEbh3j50w4idR7WGzEN4Ovdvw5kAaLDvtPk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dbwHoGDWCEbh3j50w4idR7WGzEN4Ovdvw5kAaLDvtPk/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "processing_status",
+              "lookupValue": "NEW"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -576,
+        -320
+      ],
+      "id": "f0feac81-2a8f-441f-8d06-4355e8dfa1e1",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "34JvPaZA7F4b8E7U",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "acab4e4a-3cef-46bd-9359-d9779b3780be",
+              "name": "first_name",
+              "value": "={{ $json.first_name }}",
+              "type": "string"
+            },
+            {
+              "id": "9a3c4529-c2c3-4edd-942e-74a5d690c6e8",
+              "name": "last_name",
+              "value": "={{ $json.last_name }}",
+              "type": "string"
+            },
+            {
+              "id": "6240a2ac-a76c-4d79-b0ee-c5a4849970d6",
+              "name": "email",
+              "value": "={{ $json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "23cca8e0-571e-4315-b44e-1bddca029dc3",
+              "name": "phone",
+              "value": "={{ $json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "ca97febd-5b9e-4006-a3c8-ceaffce4f2ab",
+              "name": "job_title",
+              "value": "={{ $json.job_title }}",
+              "type": "string"
+            },
+            {
+              "id": "6af6aff7-4a13-4e35-ab44-d1c5236a2a93",
+              "name": "company_name",
+              "value": "={{ $json.company_name }}",
+              "type": "string"
+            },
+            {
+              "id": "34fbdb7e-fab4-4112-9d35-5b606c7721f7",
+              "name": "company_domain",
+              "value": "={{ $json.company_domain }}",
+              "type": "string"
+            },
+            {
+              "id": "0e908957-2c5c-441c-8275-679317789713",
+              "name": "company_country",
+              "value": "={{ $json.company_country }}",
+              "type": "string"
+            },
+            {
+              "id": "e35076ee-da3e-4099-bc7e-95a61ba8b8eb",
+              "name": "company_city",
+              "value": "={{ $json.company_city }}",
+              "type": "string"
+            },
+            {
+              "id": "8ffb9800-0cdb-42f0-8a01-442f6101f110",
+              "name": "lead_source",
+              "value": "={{ $json.lead_source }}",
+              "type": "string"
+            },
+            {
+              "id": "64f73813-069b-486b-ae4a-859200143660",
+              "name": "consent_status",
+              "value": "={{ $json.consent_status }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -352,
+        -320
+      ],
+      "id": "13d07d46-01d1-414c-895e-e488250b8ebf",
+      "name": "Normalize Lead Input Node name"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst seenKeys = new Set();\n\nfunction cleanName(value) {\n  return String(value ?? '')\n    .trim()\n    .replace(/\\s+/g, ' ')\n    .replace(/\\b\\p{L}/gu, char => char.toUpperCase());\n}\n\nfunction normalizeDomain(value) {\n  let domain = String(value ?? '').trim().toLowerCase();\n\n  if (!domain) return '';\n\n  domain = domain.replace(/^[a-z]+:\\/\\//i, '');\n  domain = domain.replace(/^www\\./i, '');\n  domain = domain.split('/')[0];\n  domain = domain.split('?')[0];\n  domain = domain.split('#')[0];\n  domain = domain.replace(/:\\d+$/, '');\n  domain = domain.replace(/\\.+$/, '');\n\n  return domain;\n}\n\nfunction isValidEmail(email) {\n  return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/.test(email);\n}\n\nfunction isValidDomain(domain) {\n  return /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$/i.test(domain);\n}\n\nreturn items.map((item, index) => {\n  const input = item.json;\n\n  const firstName = cleanName(input.first_name);\n  const lastName = cleanName(input.last_name);\n  const email = String(input.email ?? '').trim().toLowerCase();\n  const companyName = String(input.company_name ?? '')\n    .trim()\n    .replace(/\\s+/g, ' ');\n\n  const domain = normalizeDomain(input.company_domain);\n\n  const phone = String(input.phone ?? '')\n    .trim()\n    .replace(/[^\\d+]/g, '');\n\n  const errors = [];\n  const reviewReasons = [];\n\n  // Empty row detection\n  const hasAnyLeadData = [\n    input.first_name,\n    input.last_name,\n    input.email,\n    input.phone,\n    input.job_title,\n    input.company_name,\n    input.company_domain,\n    input.company_country,\n    input.company_city\n  ].some(value => String(value ?? '').trim() !== '');\n\n  if (!hasAnyLeadData) {\n    errors.push('Empty source row');\n  }\n\n  // Required fields\n  if (!firstName) errors.push('Missing first_name');\n  if (!lastName) errors.push('Missing last_name');\n  if (!email) errors.push('Missing email');\n  if (!companyName) errors.push('Missing company_name');\n\n  // Email\n  if (email && !isValidEmail(email)) {\n    errors.push('Invalid email format');\n  }\n\n  // Domain\n  if (domain && !isValidDomain(domain)) {\n    reviewReasons.push('Company domain could not be confidently normalized');\n  }\n\n  // Basic phone validation\n  if (phone && phone.replace(/\\D/g, '').length < 7) {\n    reviewReasons.push('Phone number looks unusually short');\n  }\n\n  // Duplicate preparation\n  const emailNormalized = email;\n  const contactIdentityKey =\n    `${firstName} ${lastName}`.trim().toLowerCase() +\n    '|' +\n    domain;\n\n  const duplicateKey =\n    emailNormalized ||\n    contactIdentityKey;\n\n  if (duplicateKey && seenKeys.has(duplicateKey)) {\n    reviewReasons.push('Duplicate source row detected in current intake batch');\n  }\n\n  if (duplicateKey) {\n    seenKeys.add(duplicateKey);\n  }\n\n  // Determine status\n  let validationStatus = 'VALID';\n\n  if (errors.length > 0) {\n    validationStatus = 'INVALID';\n  } else if (reviewReasons.length > 0) {\n    validationStatus = 'NEEDS_REVIEW';\n  }\n\n  const now = new Date().toISOString();\n\n  const source = 'google_sheets';\n  const sourceRecordId = String(input.source_record_id ?? '');\n\n  const leadId =\n    `${source}_${sourceRecordId}`.toLowerCase();\n\n  return {\n    json: {\n      lead_id: leadId,\n      source,\n      source_record_id: sourceRecordId,\n\n      first_name: firstName,\n      last_name: lastName,\n      full_name: `${firstName} ${lastName}`.trim(),\n\n      email,\n      phone,\n\n      job_title: String(input.job_title ?? '').trim(),\n\n      company_name: companyName,\n      company_domain: domain,\n      company_country: String(input.company_country ?? '').trim(),\n      company_city: String(input.company_city ?? '').trim(),\n\n      lead_source: String(input.lead_source ?? '').trim(),\n\n      consent_status: String(input.consent_status ?? '').trim().toUpperCase(),\n      contact_status: 'NEW',\n\n      created_at: now,\n      updated_at: now,\n\n      processing_status: 'PROCESSED',\n      validation_status: validationStatus,\n\n      validation_errors: [\n        ...errors,\n        ...reviewReasons\n      ],\n\n      email_normalized: emailNormalized,\n      company_domain_normalized: domain,\n      contact_identity_key: contactIdentityKey,\n\n      row_number: input.row_number\n    },\n    pairedItem: index\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        -320
+      ],
+      "id": "7046a1dc-db81-4257-b4d0-722e35439645",
+      "name": "Validate + Build Canonical Lead"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.validation_status }}",
+                    "rightValue": "VALID",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "8c430fcb-1f91-4ecd-a297-640e93be98b9"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "VALID"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "160dd7da-3a48-4343-9073-21989b46da9c",
+                    "leftValue": "={{ $json.validation_status }}",
+                    "rightValue": "INVALID",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "INVALID"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "9051114b-ec2b-421c-85e3-4968ed6c048c",
+                    "leftValue": "={{ $json.validation_status }}",
+                    "rightValue": "NEEDS_REVIEW",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        96,
+        -336
+      ],
+      "id": "f96d9737-2023-4990-a168-d58bccec3ce4",
+      "name": "Classify Validation Status"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1dbwHoGDWCEbh3j50w4idR7WGzEN4Ovdvw5kAaLDvtPk",
+          "mode": "list",
+          "cachedResultName": "AI Sales CRM — Lead Intake Staging",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dbwHoGDWCEbh3j50w4idR7WGzEN4Ovdvw5kAaLDvtPk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dbwHoGDWCEbh3j50w4idR7WGzEN4Ovdvw5kAaLDvtPk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "source_record_id": "={{ $json.source_record_id }}",
+            "processing_status": "={{ $json.processing_status }}",
+            "validation_status": "={{ $json.validation_status }}",
+            "validation_errors": "={{ $json.validation_errors.join(' | ') }}",
+            "processed_at": "={{ $json.updated_at }}"
+          },
+          "matchingColumns": [
+            "source_record_id"
+          ],
+          "schema": [
+            {
+              "id": "source_record_id",
+              "displayName": "source_record_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "first_name",
+              "displayName": "first_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_name",
+              "displayName": "last_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "job_title",
+              "displayName": "job_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_name",
+              "displayName": "company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_domain",
+              "displayName": "company_domain",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_country",
+              "displayName": "company_country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_city",
+              "displayName": "company_city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_source",
+              "displayName": "lead_source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "consent_status",
+              "displayName": "consent_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "processing_status",
+              "displayName": "processing_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "validation_status",
+              "displayName": "validation_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "validation_errors",
+              "displayName": "validation_errors",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "processed_at",
+              "displayName": "processed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        320,
+        -592
+      ],
+      "id": "c4b66346-d7ac-41f0-b2fc-7884988908ce",
+      "name": "Update Status — VALID",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "34JvPaZA7F4b8E7U",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1dbwHoGDWCEbh3j50w4idR7WGzEN4Ovdvw5kAaLDvtPk",
+          "mode": "list",
+          "cachedResultName": "AI Sales CRM — Lead Intake Staging",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dbwHoGDWCEbh3j50w4idR7WGzEN4Ovdvw5kAaLDvtPk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dbwHoGDWCEbh3j50w4idR7WGzEN4Ovdvw5kAaLDvtPk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "source_record_id": "={{ $json.source_record_id }}",
+            "processing_status": "={{ $json.processing_status }}",
+            "validation_status": "={{ $json.validation_status }}",
+            "validation_errors": "={{ $json.validation_errors.join(' | ') }}",
+            "processed_at": "={{ $json.updated_at }}"
+          },
+          "matchingColumns": [
+            "source_record_id"
+          ],
+          "schema": [
+            {
+              "id": "source_record_id",
+              "displayName": "source_record_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "first_name",
+              "displayName": "first_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_name",
+              "displayName": "last_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "job_title",
+              "displayName": "job_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_name",
+              "displayName": "company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_domain",
+              "displayName": "company_domain",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_country",
+              "displayName": "company_country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_city",
+              "displayName": "company_city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_source",
+              "displayName": "lead_source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "consent_status",
+              "displayName": "consent_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "processing_status",
+              "displayName": "processing_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "validation_status",
+              "displayName": "validation_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "validation_errors",
+              "displayName": "validation_errors",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "processed_at",
+              "displayName": "processed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        320,
+        -400
+      ],
+      "id": "c1689288-3fbf-499b-b92e-10c881436d23",
+      "name": "Update Status — INVALID",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "34JvPaZA7F4b8E7U",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1dbwHoGDWCEbh3j50w4idR7WGzEN4Ovdvw5kAaLDvtPk",
+          "mode": "list",
+          "cachedResultName": "AI Sales CRM — Lead Intake Staging",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dbwHoGDWCEbh3j50w4idR7WGzEN4Ovdvw5kAaLDvtPk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dbwHoGDWCEbh3j50w4idR7WGzEN4Ovdvw5kAaLDvtPk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "source_record_id": "={{ $json.source_record_id }}",
+            "processing_status": "={{ $json.processing_status }}",
+            "validation_status": "={{ $json.validation_status }}",
+            "validation_errors": "={{ $json.validation_errors.join(' | ') }}",
+            "processed_at": "={{ $json.updated_at }}"
+          },
+          "matchingColumns": [
+            "source_record_id"
+          ],
+          "schema": [
+            {
+              "id": "source_record_id",
+              "displayName": "source_record_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "first_name",
+              "displayName": "first_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_name",
+              "displayName": "last_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "job_title",
+              "displayName": "job_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_name",
+              "displayName": "company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_domain",
+              "displayName": "company_domain",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_country",
+              "displayName": "company_country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company_city",
+              "displayName": "company_city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_source",
+              "displayName": "lead_source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "consent_status",
+              "displayName": "consent_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "processing_status",
+              "displayName": "processing_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "validation_status",
+              "displayName": "validation_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "validation_errors",
+              "displayName": "validation_errors",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "processed_at",
+              "displayName": "processed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        320,
+        -112
+      ],
+      "id": "498919d7-31b3-418b-b11c-c5b495e3712a",
+      "name": "Update Status — NEEDS_REVIEW",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "34JvPaZA7F4b8E7U",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch"
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        544,
+        -416
+      ],
+      "id": "98e36027-d3fd-4b8d-bddf-0d58faf1477d",
+      "name": "Preserve Canonical Lead"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Normalize Lead Input Node name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Lead Input Node name": {
+      "main": [
+        [
+          {
+            "node": "Validate + Build Canonical Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate + Build Canonical Lead": {
+      "main": [
+        [
+          {
+            "node": "Classify Validation Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status — VALID": {
+      "main": [
+        [
+          {
+            "node": "Preserve Canonical Lead",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Classify Validation Status": {
+      "main": [
+        [
+          {
+            "node": "Update Status — VALID",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Preserve Canonical Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status — INVALID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Status — NEEDS_REVIEW",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "e5867da8-69bf-46c4-8a79-0f42387471a1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1a6b1bb00b4eb5618347fcc8c1015361a8c2a4d0724140b1cb6311e793c50258"
+  },
+  "id": "yPWoBmDepwfeHWcb",
+  "tags": []
+}

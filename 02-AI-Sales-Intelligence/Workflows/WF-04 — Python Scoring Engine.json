@@ -1,0 +1,466 @@
+{
+  "name": "WF-04 — Python Scoring Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -912,
+        -352
+      ],
+      "id": "d8bd12de-5cfe-447f-8f39-fc36baf5164a",
+      "name": "01 — Receive WF-03 Handoff"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d755d207-eb66-407a-a051-f2a9ba5f0198",
+              "leftValue": "={{ $json.handoff.handoff_type }}",
+              "rightValue": "AI_ENRICHMENT_COMPLETE",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "b5766706-58a6-4a46-91d3-e2118af86595",
+              "leftValue": "={{ $json.handoff.handoff_status }}",
+              "rightValue": "READY_FOR_SCORING",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -688,
+        -352
+      ],
+      "id": "4fab70c3-3317-44f8-8c88-e500628086e0",
+      "name": "02 — Validate AI Enrichment Handoff"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f5fecddb-88c3-4309-be20-db2440faa27c",
+              "name": "={\n  \"scoring_status\": \"NOT_SCORED\",\n  \"error_code\": \"INVALID_AI_ENRICHMENT_HANDOFF\",\n  \"handoff\": {\n    \"handoff_type\": \"LEAD_SCORING_FAILED\",\n    \"handoff_status\": \"NOT_READY\"\n  }\n}",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -464,
+        -256
+      ],
+      "id": "fe83594e-f571-45af-a57c-d0a9e555d881",
+      "name": "WF-04 — Invalid Handoff"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "677558c0-33aa-46bd-8721-e115f04d0d54",
+              "name": "lead",
+              "value": "={{ $json.lead }}",
+              "type": "object"
+            },
+            {
+              "id": "b318cf24-b976-4ca5-b67d-1e06a29dbda6",
+              "name": "research",
+              "value": "={{ $json.research }}",
+              "type": "object"
+            },
+            {
+              "id": "a7a3eb0d-97c3-408c-a9e7-3d2645a0d1ee",
+              "name": "enrichment",
+              "value": "={{ $json.enrichment }}",
+              "type": "object"
+            },
+            {
+              "id": "38e6b1b9-26e6-45fc-8565-fa0b8556ad9d",
+              "name": "scoring_inputs",
+              "value": "={{ $json.scoring_inputs }}",
+              "type": "object"
+            },
+            {
+              "id": "14575db0-d66b-4fa1-b2df-1adde3f04b20",
+              "name": "handoff",
+              "value": "={{ $json.handoff }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -464,
+        -448
+      ],
+      "id": "c5f734f2-879f-4ac6-a043-320626fa2a51",
+      "name": "03 — Prepare Scoring Context"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2be7fc7d-c3f2-41cb-a882-18341b8b5890",
+              "leftValue": "={{ $json.lead.lead_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "24068465-f4fa-4577-bf86-95a7a41a8f4f",
+              "leftValue": "={{ $json.lead.company_name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "5f7f1958-c868-4959-aec9-eac2f96ca4af",
+              "leftValue": "={{ $json.enrichment.enrichment_status }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "d9b0ba6d-735a-4766-a1fc-938c1a3d7f51",
+              "leftValue": "={{ $json.enrichment.company_identity_status }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "f3596712-bcb1-4222-bd0d-32962bebe64e",
+              "leftValue": "={{ $json.scoring_inputs.growth_signal_strength }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "5c5dccd3-21c1-417f-9781-9f4decb2faca",
+              "leftValue": "={{ $json.scoring_inputs.buying_signal_strength }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "81a1a909-fa85-4c48-bae5-8908e3e48af6",
+              "leftValue": "={{ $json.scoring_inputs.trigger_event_strength }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "8e74c119-f9e8-4600-a5fe-0906fa04c8d4",
+              "leftValue": "={{ $json.scoring_inputs.role_relevance }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "38fa2039-bcf6-435e-b253-5b8e93d822e2",
+              "leftValue": "={{ $json.scoring_inputs.research_confidence }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -240,
+        -448
+      ],
+      "id": "c518c21d-4ea4-4d44-b10a-84de32df16b2",
+      "name": "04 — Validate Scoring Inputs"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "# WF-04 — Lead Scoring & Qualification\n# Node 05 — Deterministic Scoring Engine\n# Version: 1.1\n#\n# Approved scoring model:\n# ICP / Company Fit        = 20\n# Company Fit Signals      = 15\n# Role Fit                 = 20\n# Buying Signals           = 20\n# Trigger Events           = 10\n# Growth Signals           = 10\n# Research Confidence      = 5\n# TOTAL                    = 100\n#\n# Signal multipliers:\n# HIGH   = 100%\n# MEDIUM = 60%\n# LOW    = 20%\n#\n# Identity / enrichment status affects score confidence,\n# not the raw score directly.\n\nSCORING_CONFIG = {\n    \"weights\": {\n        \"company_fit\": 20,\n        \"company_fit_signals\": 15,\n        \"role_fit\": 20,\n        \"buying_signals\": 20,\n        \"trigger_events\": 10,\n        \"growth_signals\": 10,\n        \"research_confidence\": 5,\n    },\n    \"signal_multipliers\": {\n        \"HIGH\": 1.0,\n        \"MEDIUM\": 0.60,\n        \"LOW\": 0.20,\n    },\n    \"bands\": {\n        \"HIGH\": 75,\n        \"MEDIUM\": 50,\n        \"LOW\": 0,\n    },\n}\n\nALLOWED_SIGNAL_VALUES = {\n    \"HIGH\",\n    \"MEDIUM\",\n    \"LOW\",\n}\n\nALLOWED_IDENTITY_STATUS = {\n    \"CONFIRMED\",\n    \"PROBABLE\",\n    \"AMBIGUOUS\",\n    \"UNRESOLVED\",\n}\n\nALLOWED_ENRICHMENT_STATUS = {\n    \"ENRICHED\",\n    \"PARTIAL\",\n    \"NEEDS_REVIEW\",\n    \"FAILED\",\n}\n\n\n# ---------------------------------------------------------\n# COMPANY-FIT SIGNAL RULES\n# ---------------------------------------------------------\n#\n# These patterns are aligned to the actual WF-03 output.\n#\n# Important:\n# Each category can contribute ONCE to the company-fit\n# signal score. Multiple matching phrases inside the same\n# category do not create double-counting.\n#\n# Maximum:\n# 5 categories × 3 points = 15 points.\n#\n\nCOMPANY_FIT_SIGNAL_RULES = {\n    \"TARGET_GEOGRAPHY\": [\n        \"pakistan\",\n        \"uae\",\n        \"united arab emirates\",\n        \"dubai\",\n        \"abu dhabi\",\n        \"saudi arabia\",\n        \"riyadh\",\n        \"qatar\",\n        \"doha\",\n        \"uk\",\n        \"united kingdom\",\n        \"usa\",\n        \"united states\",\n        \"canada\",\n        \"australia\",\n    ],\n\n    \"TARGET_INDUSTRY\": [\n        \"museum\",\n        \"museums\",\n        \"aquarium\",\n        \"aquariums\",\n        \"zoo\",\n        \"zoos\",\n        \"garden\",\n        \"gardens\",\n        \"science center\",\n        \"science centers\",\n        \"cultural institution\",\n        \"cultural institutions\",\n        \"visitor attraction\",\n        \"visitor attractions\",\n        \"venue\",\n        \"venues\",\n        \"construction\",\n        \"real estate\",\n        \"software\",\n        \"software development\",\n        \"technology\",\n        \"manufacturing\",\n        \"logistics\",\n        \"retail\",\n        \"healthcare\",\n        \"financial services\",\n        \"education\",\n    ],\n\n    \"COMPANY_SCALE\": [\n        \"large-scale\",\n        \"large scale\",\n        \"enterprise\",\n        \"enterprise software\",\n        \"enterprise platform\",\n        \"multinational\",\n        \"large company\",\n        \"large organization\",\n        \"major company\",\n        \"major attractions\",\n        \"500\",\n        \"over 500\",\n        \"more than 500\",\n        \"hundreds of\",\n        \"51-200 employees\",\n        \"201-500 employees\",\n        \"501-1000 employees\",\n        \"$25m\",\n        \"$50m\",\n        \"revenue\",\n    ],\n\n    \"TECHNOLOGY_RELEVANCE\": [\n        \"salesforce\",\n        \"crm\",\n        \"cloud platform\",\n        \"cloud-based platform\",\n        \"cloud infrastructure\",\n        \"cloud software\",\n        \"enterprise cloud\",\n        \"erp\",\n        \"oracle\",\n        \"sap\",\n        \"pos\",\n        \"mobile interface\",\n        \"web interface\",\n        \"third-party integration\",\n        \"third-party integrations\",\n        \"third-party system\",\n        \"third-party systems\",\n        \"integration\",\n        \"integrations\",\n    ],\n\n    \"ACTIVE_RELEVANT_HIRING\": [\n        \"hiring\",\n        \"actively hiring\",\n        \"recruiting\",\n        \"recruitment\",\n        \"job opening\",\n        \"job openings\",\n        \"open position\",\n        \"open positions\",\n        \"career opening\",\n        \"careers\",\n        \"procurement\",\n        \"supply chain\",\n    ],\n\n    \"EXPANSION\": [\n        \"expansion\",\n        \"expanding\",\n        \"expanded\",\n        \"new headquarters\",\n        \"new office\",\n        \"new offices\",\n        \"new location\",\n        \"new locations\",\n        \"international expansion\",\n        \"market expansion\",\n        \"geographic expansion\",\n        \"new market\",\n        \"new markets\",\n    ],\n\n    \"OPERATIONAL_COMPLEXITY\": [\n        \"multiple locations\",\n        \"multiple businesses\",\n        \"multiple business units\",\n        \"multi-location\",\n        \"multi location\",\n        \"third-party integration\",\n        \"third-party integrations\",\n        \"third-party system\",\n        \"third-party systems\",\n        \"back-office\",\n        \"back office\",\n        \"complex operations\",\n        \"large-scale operations\",\n        \"multiple integrations\",\n        \"integrates with\",\n        \"integration with\",\n    ],\n}\n\n\n# ---------------------------------------------------------\n# HELPERS\n# ---------------------------------------------------------\n\ndef normalize_signal(value):\n    \"\"\"\n    Normalize signal values to HIGH / MEDIUM / LOW.\n    Unsupported values become LOW.\n    \"\"\"\n    if value is None:\n        return \"LOW\"\n\n    value = str(value).strip().upper()\n\n    if value in ALLOWED_SIGNAL_VALUES:\n        return value\n\n    return \"LOW\"\n\n\ndef calculate_signal_points(strength, max_points):\n    \"\"\"\n    Deterministic signal scoring.\n    \"\"\"\n    strength = normalize_signal(strength)\n\n    multiplier = SCORING_CONFIG[\"signal_multipliers\"].get(\n        strength,\n        SCORING_CONFIG[\"signal_multipliers\"][\"LOW\"]\n    )\n\n    return int(round(max_points * multiplier))\n\n\ndef build_signal_dimension(name, strength, max_points):\n    \"\"\"\n    Build a standard scoring dimension.\n    \"\"\"\n    strength = normalize_signal(strength)\n    points = calculate_signal_points(strength, max_points)\n\n    return {\n        \"points\": points,\n        \"max_points\": max_points,\n        \"reason\": (\n            f\"{name} strength {strength} contributed \"\n            f\"{points}/{max_points} points.\"\n        ),\n    }\n\n\ndef safe_text(value):\n    \"\"\"\n    Convert arbitrary value to searchable lowercase text.\n    \"\"\"\n    if value is None:\n        return \"\"\n\n    if isinstance(value, list):\n        return \" \".join(safe_text(v) for v in value)\n\n    if isinstance(value, dict):\n        return \" \".join(\n            f\"{safe_text(k)} {safe_text(v)}\"\n            for k, v in value.items()\n        )\n\n    return str(value).lower()\n\n\ndef detect_company_fit_categories(company_fit_signals):\n    \"\"\"\n    Detect recognized company-fit categories from WF-03\n    company_fit_signals.\n\n    Each category can only be recognized once.\n    \"\"\"\n\n    if not isinstance(company_fit_signals, list):\n        company_fit_signals = []\n\n    detected = []\n\n    for category, keywords in COMPANY_FIT_SIGNAL_RULES.items():\n\n        category_found = False\n\n        for signal in company_fit_signals:\n\n            signal_text = safe_text(signal)\n\n            for keyword in keywords:\n\n                if keyword.lower() in signal_text:\n                    category_found = True\n                    break\n\n            if category_found:\n                break\n\n        if category_found:\n            detected.append(category)\n\n    return detected\n\n\ndef calculate_company_fit_signal_score(company_fit_signals):\n    \"\"\"\n    Company Fit Signals:\n    3 points per recognized category.\n    Maximum = 15.\n    \"\"\"\n\n    categories = detect_company_fit_categories(company_fit_signals)\n\n    points = min(\n        len(categories) * 3,\n        SCORING_CONFIG[\"weights\"][\"company_fit_signals\"]\n    )\n\n    return {\n        \"points\": points,\n        \"max_points\": SCORING_CONFIG[\"weights\"][\"company_fit_signals\"],\n        \"recognized_categories\": categories,\n        \"recognized_signal_count\": len(categories),\n        \"reason\": (\n            f\"{len(categories)} recognized company-fit signal \"\n            f\"categories contributed {points}/15 points.\"\n            if categories\n            else\n            \"No recognized company-fit signal categories were found. \"\n            \"No company-fit signal points awarded.\"\n        ),\n    }\n\n\ndef calculate_company_fit(company_fit_signals):\n    \"\"\"\n    ICP / Company Fit:\n\n    4+ categories = STRONG = 20\n    2-3 categories = PARTIAL = 12\n    1 category = WEAK = 4\n    0 categories = UNKNOWN = 0\n    \"\"\"\n\n    categories = detect_company_fit_categories(company_fit_signals)\n\n    count = len(categories)\n\n    if count >= 4:\n        fit_level = \"STRONG\"\n        points = 20\n\n    elif count >= 2:\n        fit_level = \"PARTIAL\"\n        points = 12\n\n    elif count == 1:\n        fit_level = \"WEAK\"\n        points = 4\n\n    else:\n        fit_level = \"UNKNOWN\"\n        points = 0\n\n    if count == 0:\n        reason = (\n            \"Insufficient recognized ICP/company-fit evidence. \"\n            \"0/20 points awarded.\"\n        )\n    else:\n        reason = (\n            f\"{count} recognized company-fit categories indicate \"\n            f\"{fit_level} ICP/company fit. \"\n            f\"{points}/20 points awarded.\"\n        )\n\n    return {\n        \"points\": points,\n        \"max_points\": 20,\n        \"fit_level\": fit_level,\n        \"recognized_categories\": categories,\n        \"reason\": reason,\n    }\n\n\ndef calculate_score_confidence(\n    research_confidence,\n    identity_status,\n    enrichment_status\n):\n    \"\"\"\n    Score confidence rules:\n\n    LOW:\n      - research confidence LOW\n      - identity AMBIGUOUS\n      - identity UNRESOLVED\n      - enrichment NEEDS_REVIEW\n\n    MEDIUM:\n      - PARTIAL enrichment\n      - research confidence MEDIUM\n      - identity PROBABLE\n\n    HIGH:\n      - research HIGH\n      - identity CONFIRMED\n      - enrichment ENRICHED\n    \"\"\"\n\n    research_confidence = normalize_signal(research_confidence)\n\n    identity_status = str(\n        identity_status or \"UNRESOLVED\"\n    ).strip().upper()\n\n    enrichment_status = str(\n        enrichment_status or \"NEEDS_REVIEW\"\n    ).strip().upper()\n\n    if (\n        research_confidence == \"LOW\"\n        or identity_status in {\"AMBIGUOUS\", \"UNRESOLVED\"}\n        or enrichment_status == \"NEEDS_REVIEW\"\n    ):\n        return \"LOW\"\n\n    if (\n        research_confidence == \"HIGH\"\n        and identity_status == \"CONFIRMED\"\n        and enrichment_status == \"ENRICHED\"\n    ):\n        return \"HIGH\"\n\n    return \"MEDIUM\"\n\n\ndef determine_band(total):\n    \"\"\"\n    Score bands:\n\n    HIGH   = 75-100\n    MEDIUM = 50-74.99\n    LOW    = 0-49.99\n    \"\"\"\n\n    if total >= 75:\n        return \"HIGH\"\n\n    if total >= 50:\n        return \"MEDIUM\"\n\n    return \"LOW\"\n\n\ndef build_scoring_flags(\n    company_fit,\n    company_fit_signals,\n    identity_status,\n    enrichment_status,\n    research_confidence\n):\n    \"\"\"\n    Build deterministic scoring flags.\n    \"\"\"\n\n    flags = []\n\n    if company_fit[\"points\"] == 0:\n        flags.append(\"MISSING_COMPANY_FIT_EVIDENCE\")\n\n    if company_fit_signals[\"points\"] == 0:\n        flags.append(\"MISSING_COMPANY_FIT_SIGNAL_EVIDENCE\")\n\n    if identity_status == \"PROBABLE\":\n        flags.append(\"IDENTITY_PROBABLE\")\n\n    elif identity_status == \"AMBIGUOUS\":\n        flags.append(\"IDENTITY_AMBIGUOUS\")\n\n    elif identity_status == \"UNRESOLVED\":\n        flags.append(\"IDENTITY_UNRESOLVED\")\n\n    if enrichment_status == \"PARTIAL\":\n        flags.append(\"PARTIAL_ENRICHMENT\")\n\n    elif enrichment_status == \"NEEDS_REVIEW\":\n        flags.append(\"ENRICHMENT_NEEDS_REVIEW\")\n\n    if research_confidence == \"LOW\":\n        flags.append(\"LOW_RESEARCH_CONFIDENCE\")\n\n    elif research_confidence == \"MEDIUM\":\n        flags.append(\"MEDIUM_RESEARCH_CONFIDENCE\")\n\n    return flags\n\n\ndef build_limitations(\n    company_fit,\n    company_fit_signals,\n    identity_status,\n    enrichment_status\n):\n    \"\"\"\n    Build human-readable scoring limitations.\n    \"\"\"\n\n    limitations = []\n\n    if company_fit[\"points\"] == 0:\n        limitations.append(\n            \"No recognized company-fit evidence was available.\"\n        )\n\n    if company_fit_signals[\"points\"] == 0:\n        limitations.append(\n            \"No recognized company-fit signal categories were available.\"\n        )\n\n    if identity_status == \"PROBABLE\":\n        limitations.append(\n            \"Company identity is probable rather than confirmed.\"\n        )\n\n    elif identity_status == \"AMBIGUOUS\":\n        limitations.append(\n            \"Company identity is ambiguous.\"\n        )\n\n    elif identity_status == \"UNRESOLVED\":\n        limitations.append(\n            \"Company identity could not be fully resolved.\"\n        )\n\n    if enrichment_status == \"PARTIAL\":\n        limitations.append(\n            \"Enrichment is partial; score confidence is capped at MEDIUM.\"\n        )\n\n    elif enrichment_status == \"NEEDS_REVIEW\":\n        limitations.append(\n            \"Enrichment requires review; score confidence is LOW.\"\n        )\n\n    return limitations\n\n\n# ---------------------------------------------------------\n# MAIN SCORING FUNCTION\n# ---------------------------------------------------------\n\ndef score_lead(payload):\n\n    if not isinstance(payload, dict):\n        raise ValueError(\"Input payload must be an object.\")\n\n    lead = payload.get(\"lead\") or {}\n    research = payload.get(\"research\") or {}\n    enrichment = payload.get(\"enrichment\") or {}\n\n    # -----------------------------------------------------\n    # INPUT STATUS\n    # -----------------------------------------------------\n\n    identity_status = str(\n        enrichment.get(\"company_identity_status\")\n        or \"UNRESOLVED\"\n    ).strip().upper()\n\n    if identity_status not in ALLOWED_IDENTITY_STATUS:\n        identity_status = \"UNRESOLVED\"\n\n    enrichment_status = str(\n        enrichment.get(\"enrichment_status\")\n        or \"NEEDS_REVIEW\"\n    ).strip().upper()\n\n    if enrichment_status not in ALLOWED_ENRICHMENT_STATUS:\n        enrichment_status = \"NEEDS_REVIEW\"\n\n    # -----------------------------------------------------\n    # SCORING INPUTS\n    # -----------------------------------------------------\n\n    enrichment_scoring_inputs = enrichment.get(\n        \"scoring_inputs\"\n    ) or {}\n\n    top_level_scoring_inputs = payload.get(\n        \"scoring_inputs\"\n    ) or {}\n\n    # Prefer top-level scoring_inputs when available,\n    # otherwise use enrichment.scoring_inputs.\n    scoring_inputs = dict(enrichment_scoring_inputs)\n\n    scoring_inputs.update(top_level_scoring_inputs)\n\n    growth_signal_strength = normalize_signal(\n        scoring_inputs.get(\"growth_signal_strength\")\n    )\n\n    buying_signal_strength = normalize_signal(\n        scoring_inputs.get(\"buying_signal_strength\")\n    )\n\n    trigger_event_strength = normalize_signal(\n        scoring_inputs.get(\"trigger_event_strength\")\n    )\n\n    role_relevance = normalize_signal(\n        scoring_inputs.get(\"role_relevance\")\n    )\n\n    research_confidence = normalize_signal(\n        scoring_inputs.get(\n            \"research_confidence\",\n            research.get(\"research_confidence\")\n        )\n    )\n\n    company_fit_signals = scoring_inputs.get(\n        \"company_fit_signals\"\n    )\n\n    if not isinstance(company_fit_signals, list):\n        company_fit_signals = []\n\n    # -----------------------------------------------------\n    # COMPANY FIT\n    # -----------------------------------------------------\n\n    company_fit = calculate_company_fit(\n        company_fit_signals\n    )\n\n    company_fit_signal_score = (\n        calculate_company_fit_signal_score(\n            company_fit_signals\n        )\n    )\n\n    # -----------------------------------------------------\n    # OTHER DIMENSIONS\n    # -----------------------------------------------------\n\n    role_fit = build_signal_dimension(\n        \"Role relevance\",\n        role_relevance,\n        SCORING_CONFIG[\"weights\"][\"role_fit\"]\n    )\n\n    buying_signals = build_signal_dimension(\n        \"Buying signal\",\n        buying_signal_strength,\n        SCORING_CONFIG[\"weights\"][\"buying_signals\"]\n    )\n\n    trigger_events = build_signal_dimension(\n        \"Trigger event\",\n        trigger_event_strength,\n        SCORING_CONFIG[\"weights\"][\"trigger_events\"]\n    )\n\n    growth_signals = build_signal_dimension(\n        \"Growth signal\",\n        growth_signal_strength,\n        SCORING_CONFIG[\"weights\"][\"growth_signals\"]\n    )\n\n    research_confidence_score = build_signal_dimension(\n        \"Research confidence\",\n        research_confidence,\n        SCORING_CONFIG[\"weights\"][\"research_confidence\"]\n    )\n\n    # -----------------------------------------------------\n    # TOTAL\n    # -----------------------------------------------------\n\n    total = (\n        company_fit[\"points\"]\n        + company_fit_signal_score[\"points\"]\n        + role_fit[\"points\"]\n        + buying_signals[\"points\"]\n        + trigger_events[\"points\"]\n        + growth_signals[\"points\"]\n        + research_confidence_score[\"points\"]\n    )\n\n    # Integrity protection\n    total = max(\n        0,\n        min(\n            100,\n            int(total)\n        )\n    )\n\n    percentage = total\n\n    band = determine_band(total)\n\n    # -----------------------------------------------------\n    # SCORE CONFIDENCE\n    # -----------------------------------------------------\n\n    score_confidence = calculate_score_confidence(\n        research_confidence,\n        identity_status,\n        enrichment_status\n    )\n\n    # -----------------------------------------------------\n    # FLAGS + LIMITATIONS\n    # -----------------------------------------------------\n\n    flags = build_scoring_flags(\n        company_fit,\n        company_fit_signal_score,\n        identity_status,\n        enrichment_status,\n        research_confidence\n    )\n\n    limitations = build_limitations(\n        company_fit,\n        company_fit_signal_score,\n        identity_status,\n        enrichment_status\n    )\n\n    # -----------------------------------------------------\n    # REASONS\n    # -----------------------------------------------------\n\n    scoring_reasons = [\n        company_fit[\"reason\"],\n        company_fit_signal_score[\"reason\"],\n        role_fit[\"reason\"],\n        buying_signals[\"reason\"],\n        trigger_events[\"reason\"],\n        growth_signals[\"reason\"],\n        research_confidence_score[\"reason\"],\n    ]\n\n    # -----------------------------------------------------\n    # OUTPUT\n    # -----------------------------------------------------\n\n    return {\n        \"lead\": {\n            \"lead_id\": lead.get(\"lead_id\"),\n            \"company_name\": lead.get(\"company_name\"),\n            \"company_domain\": lead.get(\"company_domain\"),\n        },\n\n        \"research\": research,\n\n        \"enrichment\": enrichment,\n\n        \"scoring_inputs\": {\n            \"growth_signal_strength\": growth_signal_strength,\n            \"buying_signal_strength\": buying_signal_strength,\n            \"trigger_event_strength\": trigger_event_strength,\n            \"company_fit_signals\": company_fit_signals,\n            \"role_relevance\": role_relevance,\n            \"research_confidence\": research_confidence,\n        },\n\n        \"scoring\": {\n            \"scoring_version\": \"1.1\",\n            \"scoring_status\": (\n                \"NOT_SCORED\"\n                if enrichment_status == \"FAILED\"\n                else \"SCORED\"\n            ),\n\n            \"score\": {\n                \"total\": total,\n                \"maximum\": 100,\n                \"percentage\": percentage,\n                \"band\": band,\n            },\n\n            \"score_breakdown\": {\n                \"company_fit\": company_fit,\n\n                \"company_fit_signals\": company_fit_signal_score,\n\n                \"role_fit\": role_fit,\n\n                \"buying_signals\": buying_signals,\n\n                \"trigger_events\": trigger_events,\n\n                \"growth_signals\": growth_signals,\n\n                \"research_confidence\": research_confidence_score,\n            },\n\n            \"score_confidence\": score_confidence,\n\n            \"scoring_reasons\": scoring_reasons,\n\n            \"scoring_flags\": flags,\n\n            \"inputs_used\": {\n                \"identity_status\": identity_status,\n                \"enrichment_status\": enrichment_status,\n                \"research_confidence\": research_confidence,\n                \"company_fit_signals\": company_fit_signals,\n                \"role_relevance\": role_relevance,\n                \"buying_signal_strength\": buying_signal_strength,\n                \"trigger_event_strength\": trigger_event_strength,\n                \"growth_signal_strength\": growth_signal_strength,\n            },\n\n            \"limitations\": limitations,\n        },\n\n        \"handoff\": {\n            \"handoff_type\": \"LEAD_SCORING_COMPLETE\",\n            \"handoff_status\": (\n                \"NOT_READY\"\n                if enrichment_status == \"FAILED\"\n                else \"READY_FOR_ROUTING\"\n            ),\n        },\n    }\n\n\n# ---------------------------------------------------------\n# N8N EXECUTION\n# ---------------------------------------------------------\n\nresults = []\n\nfor item in _items:\n\n    try:\n\n        # n8n Run Once for All Items provides each item\n        # with its payload under item[\"json\"].\n        if (\n            isinstance(item, dict)\n            and isinstance(item.get(\"json\"), dict)\n        ):\n            payload = item[\"json\"]\n        else:\n            payload = item\n\n        result = score_lead(payload)\n\n        results.append({\n            \"json\": result\n        })\n\n    except Exception as error:\n\n        results.append({\n            \"json\": {\n                \"scoring\": {\n                    \"scoring_version\": \"1.1\",\n                    \"scoring_status\": \"SCORING_FAILED\",\n                    \"score\": {\n                        \"total\": 0,\n                        \"maximum\": 100,\n                        \"percentage\": 0,\n                        \"band\": \"LOW\",\n                    },\n                    \"score_confidence\": \"LOW\",\n                    \"scoring_flags\": [\n                        \"SCORING_ENGINE_ERROR\"\n                    ],\n                    \"limitations\": [\n                        str(error)\n                    ],\n                },\n                \"handoff\": {\n                    \"handoff_type\": \"LEAD_SCORING_COMPLETE\",\n                    \"handoff_status\": \"NOT_READY\",\n                },\n            }\n        })\n\nreturn results"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        -512
+      ],
+      "id": "9168fecb-dea4-4b55-8416-c625eb4a4b71",
+      "name": "05 — Python Scoring Engine"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "36247546-eed2-4feb-b1c3-0679eeef654b",
+              "leftValue": "={{ $json.scoring.scoring_status }}",
+              "rightValue": "SCORED",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "e26a150c-2739-4d44-b308-11f1aaeaeec4",
+              "leftValue": "={{ $json.scoring.score.total }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "f8c2e4a3-e675-4eff-9b86-3ed5ebbe017f",
+              "leftValue": "={{ $json.scoring.score.total }}",
+              "rightValue": "={{ $json.scoring.score.maximum }}",
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            },
+            {
+              "id": "7f7f01de-e6db-4073-b707-2efdba8a5b26",
+              "leftValue": "={{ $json.scoring.score.percentage }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "7b3a6fc2-4b3b-49bd-add2-6cfed86ae40f",
+              "leftValue": "={{ $json.scoring.score.band }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        208,
+        -512
+      ],
+      "id": "b123c992-e1da-4573-a98b-241fadf3135f",
+      "name": "06 — Validate Score"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8b48360b-07af-4c08-ac92-9726eeb6efbf",
+              "name": "lead",
+              "value": "={{ $json.lead }}",
+              "type": "object"
+            },
+            {
+              "id": "37585237-6ac5-4eec-b17e-10f1532407e5",
+              "name": "research",
+              "value": "={{ $json.research }}",
+              "type": "object"
+            },
+            {
+              "id": "378f2575-e634-4c9b-bac7-3cc7c0d719c3",
+              "name": "enrichment",
+              "value": "={{ $json.enrichment }}",
+              "type": "object"
+            },
+            {
+              "id": "f258b5cd-9db3-4a8c-a8c1-fe2834566fd6",
+              "name": "scoring",
+              "value": "={{ $json.scoring }}",
+              "type": "object"
+            },
+            {
+              "id": "dfefd807-6a47-401d-a636-940639cbac0c",
+              "name": "handoff",
+              "value": "={   \"handoff_type\": \"LEAD_SCORING_COMPLETE\",   \"handoff_status\": \"READY_FOR_ROUTING\" }",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        432,
+        -608
+      ],
+      "id": "c0d3968d-a0df-4efe-a5d9-2465c22ed92d",
+      "name": "07 — Build WF-04 Final Handoff"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "01 — Receive WF-03 Handoff": {
+      "main": [
+        [
+          {
+            "node": "02 — Validate AI Enrichment Handoff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "02 — Validate AI Enrichment Handoff": {
+      "main": [
+        [
+          {
+            "node": "03 — Prepare Scoring Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WF-04 — Invalid Handoff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "03 — Prepare Scoring Context": {
+      "main": [
+        [
+          {
+            "node": "04 — Validate Scoring Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "04 — Validate Scoring Inputs": {
+      "main": [
+        [
+          {
+            "node": "05 — Python Scoring Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "05 — Python Scoring Engine": {
+      "main": [
+        [
+          {
+            "node": "06 — Validate Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "06 — Validate Score": {
+      "main": [
+        [
+          {
+            "node": "07 — Build WF-04 Final Handoff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ff6b5ae1-66c3-430f-956d-6dc89983510f",
+  "meta": {
+    "instanceId": "1a6b1bb00b4eb5618347fcc8c1015361a8c2a4d0724140b1cb6311e793c50258"
+  },
+  "nodeGroups": [],
+  "id": "Ix9e1Ww3nh2VlXpA",
+  "tags": []
+}

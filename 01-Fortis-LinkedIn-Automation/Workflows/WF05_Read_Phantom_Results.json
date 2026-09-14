@@ -1,0 +1,1444 @@
+{
+  "name": "WF05_Read_Phantom_Results",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "getOutput",
+        "agentId": "7924092465122691",
+        "additionalFields": {
+          "prevContainerId": "={{ $json.body.containerId }}"
+        }
+      },
+      "type": "n8n-nodes-base.phantombuster",
+      "typeVersion": 1,
+      "position": [
+        -672,
+        96
+      ],
+      "id": "d736fa19-d3b6-46d6-9bb9-1bc44695d4e7",
+      "name": "Get the output of an agent",
+      "credentials": {
+        "phantombusterApi": {
+          "id": "JEUNfkl0UviLCZPw",
+          "name": "Phantombuster account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "Read_Phantom_Results",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -896,
+        96
+      ],
+      "id": "01fdb716-7c3f-42ad-9540-5f1bbaa4b0a7",
+      "name": "Webhook",
+      "webhookId": "b9f9954a-ea62-4411-97b8-1558234c6f49"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const status = ($json.status || \"\").trim();\n\nreturn {\n  json: {\n\n    queueId: $json.Queue_ID,\n\n    leadId: $json.Lead_ID || \"\",\n\n    linkedinUrl: $json.LinkedIn_URL,\n\n    campaignId: $json.Campaign_ID || \"\",\n\n    profileUrl: $json.profileUrl,\n\n    connectionMessage: $json.Connection_Message,\n\n    firstMessage: $json.First_Message,\n\n    followupMessage: $json.Followup_Message,\n\n    phantomStatus: status,\n\n    containerId: $('Webhook').first().json.body.containerId,\n\n    agentId: $('Webhook').first().json.body.agentId,\n\n    launchDuration: $('Webhook').first().json.body.launchDuration,\n\n    runDuration: $('Webhook').first().json.body.runDuration,\n\n    createdAt: $json.Created_At,\n\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        96
+      ],
+      "id": "e46a4276-c8a2-4903-a2f2-12eed1a711a7",
+      "name": "Normalize Phantom Payload"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1DDjRa4vJBPttqTThucSCsI61hPOmR4GZyRkojcE8yXM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": 708092825
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Queue ID",
+              "lookupValue": "={{ $json.queueId }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -224,
+        176
+      ],
+      "id": "04ebf6f5-3093-4ffd-876f-b39e5c0125f5",
+      "name": "Lookup Queue",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qDqIQz3Rn4sdQGM7",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1Q4TEkDAK3NdvO3fk5HMKC-nHrly4yluXPKrPaoRkIX8"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Lead ID",
+              "lookupValue": "={{ $json[\"Lead ID\"] }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        0,
+        224
+      ],
+      "id": "f6d2c7cc-3ff1-4748-b23d-4cf3d565e5c2",
+      "name": "Lookup Lead Intake",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qDqIQz3Rn4sdQGM7",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "235b6c8a-09e8-4108-a944-c8ea061aa3c5",
+      "name": "Merge Queue"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        224,
+        96
+      ],
+      "id": "17a943c0-3baf-48a3-9c3e-e59691300500",
+      "name": "Merge Lead"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const p = $json.phantomStatus;\n\nlet internal=\"UNKNOWN\";\n\nlet connectionSent=false;\nlet connected=false;\nlet firstSent=false;\nlet followupSent=false;\nlet replied=false;\n\nswitch(p){\n\ncase \"Not invited yet\":\ninternal=\"READY_TO_CONNECT\";\nbreak;\n\ncase \"Invitation sent\":\ncase \"Invited\":\n\ninternal=\"CONNECTION_SENT\";\nconnectionSent=true;\nbreak;\n\ncase \"Already connected\":\ncase \"Request accepted\":\ncase \"Accepted\":\n\ninternal=\"CONNECTED\";\nconnectionSent=true;\nconnected=true;\nbreak;\n\ncase \"1st follow-up sent\":\ncase \"Follow-up sent\":\n\ninternal=\"FOLLOWUP_SENT\";\nconnectionSent=true;\nconnected=true;\nfirstSent=true;\nfollowupSent=true;\nbreak;\n\ncase \"Replied\":\ncase \"Replied (Connection request)\":\n\ninternal=\"REPLIED\";\nconnectionSent=true;\nconnected=true;\nreplied=true;\nbreak;\n\ncase \"Couldn't invite\":\ncase \"Could not invite\":\n\ninternal=\"FAILED\";\nbreak;\n\n}\n\n$json.internalStatus=internal;\n\n$json.connectionSent=connectionSent;\n$json.connected=connected;\n$json.firstMessageSent=firstSent;\n$json.followupSent=followupSent;\n$json.replyReceived=replied;\n\nreturn {\n  json: $json\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        96
+      ],
+      "id": "971cecfc-ad77-4856-9bc4-8949f317d613",
+      "name": "Map Phantom Status"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6eeb00ee-0489-47fd-bd05-ffedee0a3051",
+              "leftValue": "={{$json.Status != $json.internalStatus}}",
+              "rightValue": "=",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        672,
+        96
+      ],
+      "id": "3cfb49a9-b571-45c7-ba77-41bd15ee875a",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1DDjRa4vJBPttqTThucSCsI61hPOmR4GZyRkojcE8yXM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": 708092825
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Queue ID": "={{ $('If').item.json.queueId }}",
+            "Connection Sent": "={{ $json['Connection Sent'] }}",
+            "First Message Sent": "={{ $json['First Message Sent'] }}",
+            "Accepted": "={{ $json.Accepted }}",
+            "Follow-up Sent": "={{ $json['Follow-up Sent'] }}",
+            "Reply Received": "={{ $json['Reply Received'] }}",
+            "Campaign ID": "={{ $json['Container ID'] }}",
+            "Connection Status": "={{ $('If').item.json.phantomStatus }}"
+          },
+          "matchingColumns": [
+            "Queue ID"
+          ],
+          "schema": [
+            {
+              "id": "Queue ID",
+              "displayName": "Queue ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead ID",
+              "displayName": "Lead ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "LinkedIn URL",
+              "displayName": "LinkedIn URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job Title",
+              "displayName": "Job Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Seniority",
+              "displayName": "Seniority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Name",
+              "displayName": "Company Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Website",
+              "displayName": "Company Website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Industry",
+              "displayName": "Industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Country",
+              "displayName": "Country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "City",
+              "displayName": "City",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Size",
+              "displayName": "Company Size",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Greeting",
+              "displayName": "Greeting",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Connection Reference",
+              "displayName": "Connection Reference",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Personalised Opening",
+              "displayName": "Personalised Opening",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Summary",
+              "displayName": "Company Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Research Source",
+              "displayName": "Research Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Research Confidence",
+              "displayName": "Research Confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Confidence",
+              "displayName": "AI Confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Fallback",
+              "displayName": "AI Fallback",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Container ID",
+              "displayName": "Container ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Launch Start At",
+              "displayName": "Launch Start At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Connection Sent",
+              "displayName": "Connection Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Accepted",
+              "displayName": "Accepted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "First Message Sent",
+              "displayName": "First Message Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Follow-up Sent",
+              "displayName": "Follow-up Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reply Received",
+              "displayName": "Reply Received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Status",
+              "displayName": "AI Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Research Status",
+              "displayName": "Research Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Connection Status",
+              "displayName": "Connection Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Campaign ID",
+              "displayName": "Campaign ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Attempt Count",
+              "displayName": "Attempt Count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Error",
+              "displayName": "Last Error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Retry After",
+              "displayName": "Retry After",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Created At",
+              "displayName": "Created At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Updated At",
+              "displayName": "Updated At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1120,
+        96
+      ],
+      "id": "14131dba-531f-4bdc-a96a-e42f7687f776",
+      "name": "Update Queue",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qDqIQz3Rn4sdQGM7",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5de571a5-9489-49c5-a97c-93fcd4c587b5",
+              "name": "Connection Sent",
+              "value": "={{ $json.connectionSent }}",
+              "type": "boolean"
+            },
+            {
+              "id": "998128d5-83d8-433e-844b-481d0c6fff99",
+              "name": "Accepted",
+              "value": "={{ $json.connected }}",
+              "type": "boolean"
+            },
+            {
+              "id": "b1929668-ea43-42f2-8d22-d5fe01fe59d2",
+              "name": "First Message Sent",
+              "value": "={{ $json.firstMessageSent }}",
+              "type": "boolean"
+            },
+            {
+              "id": "49e2f70e-2f62-4ce2-bd55-71924f55f9f1",
+              "name": "Follow-up Sent",
+              "value": "={{ $json.followupSent }}",
+              "type": "boolean"
+            },
+            {
+              "id": "afd2fb94-2971-4f11-ad0f-65d0561aa25a",
+              "name": "Reply Received",
+              "value": "={{ $json.replyReceived }}",
+              "type": "boolean"
+            },
+            {
+              "id": "849e8154-3f7a-43e1-9ad5-58da1f4ac33d",
+              "name": "Last Updated",
+              "value": "={{ $now }}",
+              "type": "string"
+            },
+            {
+              "id": "10cc9dc7-beaf-4fe4-b04e-d631e30a4e92",
+              "name": "Container ID",
+              "value": "={{ $json.containerId }}",
+              "type": "string"
+            },
+            {
+              "id": "9caf4979-5b57-46bd-af14-2cd94f9e3b43",
+              "name": "Phantom Status",
+              "value": "={{ $json.phantomStatus }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        96
+      ],
+      "id": "f2143f43-ef98-4ab6-bc90-31c4596b18f3",
+      "name": "Prepare Queue Update"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9ced9e97-35d4-4d0b-a9ce-7ca85a8b2da2",
+              "name": "Campaign Status",
+              "value": "={{ $json['Campaign ID'] }}",
+              "type": "string"
+            },
+            {
+              "id": "528304fc-65cf-4248-9091-64384ca4308a",
+              "name": "Phantom Status",
+              "value": "={{ $('Prepare Queue Update').item.json['Phantom Status'] }}",
+              "type": "string"
+            },
+            {
+              "id": "23178580-f4af-4291-b35d-67c126067198",
+              "name": "Connection Sent",
+              "value": "={{ $json['Connection Sent'] }}",
+              "type": "boolean"
+            },
+            {
+              "id": "3591a67c-f129-42f6-a828-fa42e4d425e2",
+              "name": "Connected",
+              "value": "={{ $('Map Phantom Status').item.json.connected }}",
+              "type": "boolean"
+            },
+            {
+              "id": "42b7495a-5a60-4746-ba3a-b89e3ba18522",
+              "name": "First Message Sent",
+              "value": "={{ $json['First Message Sent'] }}",
+              "type": "boolean"
+            },
+            {
+              "id": "7db66e92-766d-4d64-a282-30547e83aa08",
+              "name": "Follow-up Sent",
+              "value": "={{ $json['Follow-up Sent'] }}",
+              "type": "boolean"
+            },
+            {
+              "id": "6a13da6f-c9f2-483e-aa52-d7236e03b9d0",
+              "name": "Reply Received",
+              "value": "={{ $json['Reply Received'] }}",
+              "type": "boolean"
+            },
+            {
+              "id": "c22a6246-6d1b-408e-a954-d65d97cfa54b",
+              "name": "Last Updated",
+              "value": "={{ $('Prepare Queue Update').item.json['Last Updated'] }}",
+              "type": "string"
+            },
+            {
+              "id": "e340a4d4-07b6-4d42-bdcc-03fbd7c39f90",
+              "name": "Notes",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1344,
+        96
+      ],
+      "id": "3488d37b-d17c-477e-a020-443cc6e7920e",
+      "name": "Prepare Lead Intake Update"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1Q4TEkDAK3NdvO3fk5HMKC-nHrly4yluXPKrPaoRkIX8"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead ID": "={{ $('If').item.json['Lead ID'] }}",
+            "Campaign Status": "={{ $('Update Queue').item.json['Campaign ID'] }}",
+            "Phantom Status": "={{ $json['Phantom Status'] }}",
+            "Connection Sent": "={{ $json['Connection Sent'] }}",
+            "Connected": "={{ $json.Connected }}",
+            "First Message Sent": "={{ $json['First Message Sent'] }}",
+            "Follow-up Sent": "={{ $json['Follow-up Sent'] }}",
+            "Reply Received": "={{ $json['Reply Received'] }}",
+            "Last Updated": "={{ $json['Last Updated'] }}"
+          },
+          "matchingColumns": [
+            "Lead ID"
+          ],
+          "schema": [
+            {
+              "id": "Lead ID",
+              "displayName": "Lead ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "LinkedIn Profile URL",
+              "displayName": "LinkedIn Profile URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job Title",
+              "displayName": "Job Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Seniority",
+              "displayName": "Seniority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Name",
+              "displayName": "Company Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Website",
+              "displayName": "Company Website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Industry",
+              "displayName": "Industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Country",
+              "displayName": "Country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "City",
+              "displayName": "City",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Size",
+              "displayName": "Company Size",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Source / Search Query",
+              "displayName": "Source / Search Query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date Added",
+              "displayName": "Date Added",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Updated",
+              "displayName": "Last Updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Validation Errors",
+              "displayName": "Validation Errors",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Campaign Status",
+              "displayName": "Campaign Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phantom Status",
+              "displayName": "Phantom Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Connection Sent",
+              "displayName": "Connection Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Connected",
+              "displayName": "Connected",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "First Message Sent",
+              "displayName": "First Message Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Follow-up Sent",
+              "displayName": "Follow-up Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Reply Received",
+              "displayName": "Reply Received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1568,
+        96
+      ],
+      "id": "6a01df35-49c4-4971-8c66-0c0734dc1772",
+      "name": "Update Lead Intake",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qDqIQz3Rn4sdQGM7",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1Q4TEkDAK3NdvO3fk5HMKC-nHrly4yluXPKrPaoRkIX8"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": 1882728199
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Sync Time": "={{ $now }}",
+            "Campaign ID": "={{ $json['Campaign Status'] }}",
+            "Lead ID": "={{ $json['Lead ID'] }}",
+            "Queue ID": "={{ $('Update Queue').item.json['Queue ID'] }}",
+            "LinkedIn URL": "={{ $('If').item.json.linkedinUrl }}",
+            "Company": "={{ $('If').item.json['Company Name'] }}",
+            "Connection Sent": "={{ $json['Connection Sent'] }}",
+            "Accepted": "={{ $('Update Queue').item.json.Accepted }}",
+            "First Message Sent": "={{ $('Update Queue').item.json['First Message Sent'] }}",
+            "Follow-up Sent": "={{ $('Update Queue').item.json['Follow-up Sent'] }}",
+            "Reply Received": "={{ $('Update Queue').item.json['Reply Received'] }}",
+            "Container ID": "={{ $json['Campaign Status'] }}",
+            "Connection Status": "={{ $('Update Queue').item.json['Connection Status'] }}",
+            "Research Status": "={{ $('If').item.json['Research Status'] }}",
+            "Status": "={{ $('If').item.json.Status }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Sync Time",
+              "displayName": "Sync Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Campaign ID",
+              "displayName": "Campaign ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Queue ID",
+              "displayName": "Queue ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead ID",
+              "displayName": "Lead ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "LinkedIn URL",
+              "displayName": "LinkedIn URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Connection Status",
+              "displayName": "Connection Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Status",
+              "displayName": "AI Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Research Status",
+              "displayName": "Research Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Connection Sent",
+              "displayName": "Connection Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Accepted",
+              "displayName": "Accepted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "First Message Sent",
+              "displayName": "First Message Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Follow-up Sent",
+              "displayName": "Follow-up Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Reply Received",
+              "displayName": "Reply Received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Container ID",
+              "displayName": "Container ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Run ID",
+              "displayName": "Run ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1792,
+        96
+      ],
+      "id": "0640e86f-878f-495c-be7c-0c12e5469465",
+      "name": "Append Campaign Log",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qDqIQz3Rn4sdQGM7",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get the output of an agent": {
+      "main": [
+        [
+          {
+            "node": "Normalize Phantom Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get the output of an agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Phantom Payload": {
+      "main": [
+        [
+          {
+            "node": "Lookup Queue",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Queue": {
+      "main": [
+        [
+          {
+            "node": "Lookup Lead Intake",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Queue",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Lookup Lead Intake": {
+      "main": [
+        [
+          {
+            "node": "Merge Lead",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Queue": {
+      "main": [
+        [
+          {
+            "node": "Merge Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Lead": {
+      "main": [
+        [
+          {
+            "node": "Map Phantom Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Phantom Status": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Prepare Queue Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Queue Update": {
+      "main": [
+        [
+          {
+            "node": "Update Queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Queue": {
+      "main": [
+        [
+          {
+            "node": "Prepare Lead Intake Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Lead Intake Update": {
+      "main": [
+        [
+          {
+            "node": "Update Lead Intake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Lead Intake": {
+      "main": [
+        [
+          {
+            "node": "Append Campaign Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "cf6cc89e-7356-4fe4-bea0-ccce6bbc06b6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "85f6e48ae1ffde2753bae92196b60db76ca159ffe1720ebcfd0298037aee88de"
+  },
+  "nodeGroups": [],
+  "id": "81XeCSRJy34731KN",
+  "tags": []
+}

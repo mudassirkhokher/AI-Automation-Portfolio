@@ -1,0 +1,427 @@
+{
+  "name": "WF04- Campaingn_Input",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 25
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        -96
+      ],
+      "id": "e6eb09b4-3de4-4ef9-8049-c2e331e620bc",
+      "name": "Schedule Trigger1"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1Q4TEkDAK3NdvO3fk5HMKC-nHrly4yluXPKrPaoRkIX8"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": 1148470533
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        -96
+      ],
+      "id": "a793a35a-a156-4069-8a2b-b6c24bcaef66",
+      "name": "Get row(s) in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qDqIQz3Rn4sdQGM7",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        448,
+        -96
+      ],
+      "id": "01be1f16-21e7-4409-a818-29dfb84cbf7c",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "419c7720-0dd3-4b05-9cc8-0eceb5ad5897",
+              "leftValue": "={{ $json.Campaign_Status }}",
+              "rightValue": "READY_TO_CONNECT",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        672,
+        -240
+      ],
+      "id": "ed7b36ed-f62c-4ba0-923d-38162abf3fb2",
+      "name": "READY_TO_CONNECT?"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1GyZKSCdVPFJE6yOqAsV2nVdLGljFxh1ivqlALjgeSaQ"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": 1411424193
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Queue_ID": "={{ $('READY_TO_CONNECT?').item.json.Queue_ID }}",
+            "LinkedIn_URL": "={{ $('READY_TO_CONNECT?').item.json.LinkedIn_URL }}",
+            "Name": "={{ $('READY_TO_CONNECT?').item.json.Name }}",
+            "Company": "={{ $('READY_TO_CONNECT?').item.json.Company }}",
+            "Connection_Message": "={{ $('READY_TO_CONNECT?').item.json.Connection_Message }}",
+            "First_Message": "={{ $('READY_TO_CONNECT?').item.json.First_Message }}",
+            "Followup_Message": "={{ $('READY_TO_CONNECT?').item.json.Followup_Message }}",
+            "Campaign_Status": "={{ $('READY_TO_CONNECT?').item.json.Campaign_Status }}",
+            "Created_At": "={{ $now }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Campaign_ID",
+              "displayName": "Campaign_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Queue_ID",
+              "displayName": "Queue_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "LinkedIn_URL",
+              "displayName": "LinkedIn_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Connection_Message",
+              "displayName": "Connection_Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "First_Message",
+              "displayName": "First_Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Followup_Message",
+              "displayName": "Followup_Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Campaign_Status",
+              "displayName": "Campaign_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phantom_Run_ID",
+              "displayName": "Phantom_Run_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Created_At",
+              "displayName": "Created_At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1344,
+        -96
+      ],
+      "id": "d6912cf7-ac41-4dc9-a769-64652c7dd546",
+      "name": "Append Campaign_Input",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qDqIQz3Rn4sdQGM7",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1GyZKSCdVPFJE6yOqAsV2nVdLGljFxh1ivqlALjgeSaQ",
+          "mode": "list",
+          "cachedResultName": "Fortis LinkedIn Automation - Phantom_input",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GyZKSCdVPFJE6yOqAsV2nVdLGljFxh1ivqlALjgeSaQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1411424193,
+          "mode": "list",
+          "cachedResultName": "Campaign_Input",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1GyZKSCdVPFJE6yOqAsV2nVdLGljFxh1ivqlALjgeSaQ/edit#gid=1411424193"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Queue_ID",
+              "lookupValue": "={{ $json.Queue_ID }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        896,
+        -240
+      ],
+      "id": "523bfd46-0e89-4135-92f7-6f19f7df52c3",
+      "name": "Get row(s) in sheet",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qDqIQz3Rn4sdQGM7",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "377db634-4c56-4987-9a57-b620b632e306",
+              "leftValue": "={{ $json.Queue_ID }}",
+              "rightValue": "={{ $('READY_TO_CONNECT?').item.json.Queue_ID }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1120,
+        -160
+      ],
+      "id": "75dcf10f-bdf1-4e9a-873e-e909d51275cc",
+      "name": "If",
+      "alwaysOutputData": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "READY_TO_CONNECT?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "READY_TO_CONNECT?": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Campaign_Input": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append Campaign_Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "f3d2b118-5dd9-4deb-9456-e93a3bbe60e3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "85f6e48ae1ffde2753bae92196b60db76ca159ffe1720ebcfd0298037aee88de"
+  },
+  "nodeGroups": [],
+  "id": "gvyCm7TGV3WEGg08",
+  "tags": []
+}

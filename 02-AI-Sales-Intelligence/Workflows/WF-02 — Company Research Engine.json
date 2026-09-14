@@ -1,0 +1,1682 @@
+{
+  "name": "WF-02 — Company Research Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        -1904
+      ],
+      "id": "ff980dcc-88e9-4d6d-824e-d0ae75ab148c",
+      "name": "Receive Canonical Lead"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const lead = $json;\n\nconst errors = [];\n\nif (!lead.lead_id) {\n  errors.push('Missing lead_id');\n}\n\nif (!lead.company_name) {\n  errors.push('Missing company_name');\n}\n\nif (lead.validation_status !== 'VALID') {\n  errors.push(\n    `Invalid WF-01 validation_status: ${lead.validation_status || 'MISSING'}`\n  );\n}\n\nif (!lead.company_domain_normalized && !lead.company_domain) {\n  errors.push('Missing company domain');\n}\n\nreturn {\n  json: {\n    lead,\n    input_validation_status:\n      errors.length === 0 ? 'VALID' : 'NEEDS_REVIEW',\n    input_validation_errors: errors\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        -1904
+      ],
+      "id": "562a42e8-342d-4dcb-b9cf-f73b64778e95",
+      "name": "Validate Research Input"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.lead.validation_status }}",
+                    "rightValue": "VALID",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "1f083605-a387-4f1a-9e6e-c3f048eb42e0"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "VALID"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "c4b69fef-9629-4757-8a17-6a32d7815b5e",
+                    "leftValue": "={{ $json.input_validation_status }}",
+                    "rightValue": "=NEEDS_REVIEW",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "NEEDS_REVIEW"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1168,
+        -1904
+      ],
+      "id": "802afe92-9de4-41db-bb67-c186baa9e354",
+      "name": "Classify Input"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a9045960-d009-4629-af98-b3abd2af5a11",
+              "name": "research_id",
+              "value": "={{ 'research_' + $json.lead.lead_id }}",
+              "type": "string"
+            },
+            {
+              "id": "fe1f40b4-9502-42d7-be3f-b0b40296e844",
+              "name": "company_name",
+              "value": "={{ $json.lead.company_name }}",
+              "type": "string"
+            },
+            {
+              "id": "130136ec-05d9-4b99-b25c-f8c9e2f94196",
+              "name": "company_domain",
+              "value": "={{ $json.lead.company_domain_normalized || $json.lead.company_domain }}",
+              "type": "string"
+            },
+            {
+              "id": "8dedfa05-4abb-47e8-945c-b07f4e6d0ffd",
+              "name": "company_country",
+              "value": "={{ $json.lead.company_country }}",
+              "type": "string"
+            },
+            {
+              "id": "4318495c-6a18-42e0-8464-5d87173062c3",
+              "name": "company_city",
+              "value": "={{ $json.lead.company_city }}",
+              "type": "string"
+            },
+            {
+              "id": "fe46f4e7-415a-4879-9e89-fb9eb42b0858",
+              "name": "research_status",
+              "value": "STARTED",
+              "type": "string"
+            },
+            {
+              "id": "c1a963df-e07c-48e6-aaa4-a4252c513237",
+              "name": "started_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "0cd9a8f1-61b2-4a68-aab1-8b4e55fb958e",
+              "name": "research_version",
+              "value": "1.0",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1392,
+        -1904
+      ],
+      "id": "2d9c9cec-f07f-400e-ac07-0c8fa43963fc",
+      "name": "Build Research Context"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $json;\n\nconst researchConfig = {\n  provider: {\n    name: 'tavily',\n    mode: 'basic',\n    endpoint: 'https://api.tavily.com/search'\n  },\n\n  limits: {\n    max_search_queries: 4,\n    max_results_per_query: 5,\n    max_pages_to_retrieve: 8,\n    max_content_chars: 12000,\n    request_timeout_ms: 15000,\n    retry_attempts: 2\n  },\n\n  research_targets: [\n    {\n      key: 'homepage',\n      source_type: 'COMPANY_HOME',\n      path: '/'\n    },\n    {\n      key: 'about',\n      source_type: 'COMPANY_ABOUT',\n      path: '/about'\n    },\n    {\n      key: 'products',\n      source_type: 'PRODUCT',\n      path: '/products'\n    },\n    {\n      key: 'services',\n      source_type: 'SERVICE',\n      path: '/services'\n    },\n    {\n      key: 'solutions',\n      source_type: 'SOLUTION',\n      path: '/solutions'\n    },\n    {\n      key: 'industries',\n      source_type: 'INDUSTRY',\n      path: '/industries'\n    },\n    {\n      key: 'careers',\n      source_type: 'CAREERS',\n      path: '/careers'\n    },\n    {\n      key: 'news',\n      source_type: 'NEWS',\n      path: '/news'\n    }\n  ],\n\n  source_tiers: {\n    COMPANY_HOME: 1,\n    COMPANY_ABOUT: 1,\n    PRODUCT: 1,\n    SERVICE: 1,\n    SOLUTION: 1,\n    INDUSTRY: 1,\n    CAREERS: 1,\n    NEWS: 1,\n    PRESS_RELEASE: 1,\n    BLOG: 1,\n    CASE_STUDY: 1,\n    EXTERNAL_BUSINESS: 2,\n    INDUSTRY_PUBLICATION: 2,\n    SEARCH_RESULT: 3,\n    OTHER: 3\n  },\n\n  query_strategy: {\n    base: [\n      'products',\n      'services'\n    ],\n\n    conditional: [\n      'careers',\n      'news'\n    ]\n  }\n};\n\nreturn [\n  {\n    json: {\n      ...input,\n      research_config: researchConfig\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1616,
+        -1904
+      ],
+      "id": "da107869-c7cf-4784-a927-69b0b19f24a4",
+      "name": "Build Research Configuration"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\n\nconst company = data.company_name;\nconst domain = data.company_domain;\n\nconst queries = [\n  {\n    query_type: 'BASE',\n    query: `\"${company}\" products`,\n    priority: 1\n  },\n  {\n    query_type: 'BASE',\n    query: `\"${company}\" services`,\n    priority: 1\n  },\n  {\n    query_type: 'CONDITIONAL',\n    query: `\"${company}\" careers`,\n    priority: 2\n  },\n  {\n    query_type: 'CONDITIONAL',\n    query: `\"${company}\" news`,\n    priority: 2\n  }\n];\n\nreturn [\n  {\n    json: {\n      ...data,\n      research_queries: queries,\n      query_count: queries.length\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        -1904
+      ],
+      "id": "c01f4cca-3088-4454-9ba8-2b6a754caadd",
+      "name": "Generate Research Queries"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json;\n\nreturn data.research_queries.map((query, index) => ({\n  json: {\n    research_id: data.research_id,\n    company_name: data.company_name,\n    company_domain: data.company_domain,\n\n    query_index: index + 1,\n    query_type: query.query_type,\n    search_query: query.query,\n    priority: query.priority,\n\n    research_config: data.research_config\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2064,
+        -1904
+      ],
+      "id": "790afc8a-3dca-4bda-9670-765bf48aa5b1",
+      "name": "Split Research Queries"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  query: $json.search_query,\n  search_depth: \"basic\",\n  topic: \"general\",\n  max_results: 5,\n  include_answer: false,\n  include_raw_content: false,\n  include_images: false\n}\n}}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2288,
+        -1904
+      ],
+      "id": "f5c8a2e3-c2c5-46a7-b46e-bff979047cd3",
+      "name": "Tavily Search",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "const tavilyItems = $input.all();\nconst queryItems = $('Split Research Queries').all();\n\nconst output = [];\n\nfor (let i = 0; i < tavilyItems.length; i++) {\n  const tavily = tavilyItems[i].json;\n  const queryContext = queryItems[i]?.json || {};\n\n  const results = Array.isArray(tavily.results)\n    ? tavily.results\n    : [];\n\n  for (let j = 0; j < results.length; j++) {\n    const result = results[j];\n\n    output.push({\n      json: {\n        research_id: queryContext.research_id,\n        company_name: queryContext.company_name,\n        company_domain: queryContext.company_domain,\n\n        query_index: queryContext.query_index,\n        query_type: queryContext.query_type,\n\n        search_query:\n          tavily.query ||\n          queryContext.search_query ||\n          '',\n\n        search_rank: j + 1,\n\n        source_title:\n          String(result.title || '').trim(),\n\n        source_url:\n          String(result.url || '').trim(),\n\n        search_snippet:\n          String(result.content || '').trim(),\n\n        relevance_score:\n          typeof result.score === 'number'\n            ? result.score\n            : null,\n\n        discovery_provider: 'tavily',\n\n        source_type: 'SEARCH_RESULT',\n\n        source_tier: 3,\n\n        retrieval_status: 'DISCOVERED'\n      }\n    });\n  }\n}\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        -1696
+      ],
+      "id": "8f561ab4-bc0b-45d4-adf6-96b6035536cd",
+      "name": "Normalize Search Results"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nreturn items.map(item => {\n  const data = item.json;\n\n  let normalizedUrl = '';\n\n  try {\n    const url = new URL(data.source_url);\n\n    url.protocol = 'https:';\n    url.hostname = url.hostname.toLowerCase();\n\n    if (url.hostname.startsWith('www.')) {\n      url.hostname = url.hostname.slice(4);\n    }\n\n    url.hash = '';\n\n    const trackingParams = [\n      'utm_source',\n      'utm_medium',\n      'utm_campaign',\n      'utm_term',\n      'utm_content',\n      'gclid',\n      'fbclid',\n      'mc_cid',\n      'mc_eid'\n    ];\n\n    trackingParams.forEach(param => {\n      url.searchParams.delete(param);\n    });\n\n    normalizedUrl = url.toString();\n\n    if (normalizedUrl.endsWith('/')) {\n      normalizedUrl = normalizedUrl.slice(0, -1);\n    }\n\n  } catch (error) {\n    normalizedUrl = data.source_url || '';\n  }\n\n  return {\n    json: {\n      ...data,\n      source_url_normalized: normalizedUrl\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        944,
+        -1696
+      ],
+      "id": "331a4668-b5c0-4f11-b5df-b7ec335ca701",
+      "name": "Normalize Source URLs"
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "source_url_normalized",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        1168,
+        -1696
+      ],
+      "id": "0d50c3df-ee37-4b81-95fd-dc6dc49b0d72",
+      "name": "Remove Duplicate Sources"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nfunction getHostname(value) {\n  if (!value) return '';\n\n  const text = String(value).trim();\n\n  const match = text.match(/^https?:\\/\\/([^/?#]+)/);\n\n  if (!match) return '';\n\n  return match[1]\n    .toLowerCase()\n    .replace(/^www\\./, '')\n    .split(':')[0];\n}\n\nfunction normalizeDomain(value) {\n  if (!value) return '';\n\n  return String(value)\n    .trim()\n    .toLowerCase()\n    .replace(/^https?:\\/\\//, '')\n    .replace(/^www\\./, '')\n    .split('/')[0]\n    .split(':')[0];\n}\n\nconst externalBusinessDomains = [\n  'linkedin.com',\n  'crunchbase.com',\n  'zoominfo.com',\n  'leadiq.com',\n  'apollo.io',\n  'glassdoor.com'\n];\n\nconst industryPublicationDomains = [\n  'reuters.com',\n  'techcrunch.com',\n  'forbes.com',\n  'businesswire.com',\n  'prnewswire.com'\n];\n\nconst socialDomains = [\n  'facebook.com',\n  'instagram.com',\n  'x.com',\n  'twitter.com'\n];\n\nfunction matchesDomain(host, domain) {\n  return host === domain || host.endsWith(`.${domain}`);\n}\n\nreturn items.map(item => {\n  const data = item.json;\n\n  const sourceUrl =\n    data.source_url_normalized ||\n    data.source_url ||\n    '';\n\n  const sourceHost = getHostname(sourceUrl);\n\n  const companyDomain = normalizeDomain(\n    data.company_domain\n  );\n\n  let sourceClass = 'OTHER';\n  let sourceTier = 3;\n\n  if (\n    sourceHost &&\n    companyDomain &&\n    matchesDomain(sourceHost, companyDomain)\n  ) {\n    sourceClass = 'COMPANY_OFFICIAL';\n    sourceTier = 1;\n  } else if (\n    externalBusinessDomains.some(domain =>\n      matchesDomain(sourceHost, domain)\n    )\n  ) {\n    sourceClass = 'EXTERNAL_BUSINESS';\n    sourceTier = 2;\n  } else if (\n    industryPublicationDomains.some(domain =>\n      matchesDomain(sourceHost, domain)\n    )\n  ) {\n    sourceClass = 'INDUSTRY_PUBLICATION';\n    sourceTier = 2;\n  } else if (\n    socialDomains.some(domain =>\n      matchesDomain(sourceHost, domain)\n    )\n  ) {\n    sourceClass = 'SOCIAL_PROFILE';\n    sourceTier = 2;\n  }\n\n  return {\n    json: {\n      ...data,\n      source_host: sourceHost,\n      company_domain_normalized: companyDomain,\n      source_class: sourceClass,\n      source_tier: sourceTier,\n      source_priority:\n        sourceClass === 'COMPANY_OFFICIAL'\n          ? 1\n          : sourceTier === 2\n            ? 2\n            : 3\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        -1696
+      ],
+      "id": "8b80d5f9-421b-400e-b8c0-ee4aa78a1ff2",
+      "name": "Classify Research Sources"
+    },
+    {
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "source_priority"
+            },
+            {
+              "fieldName": "relevance_score",
+              "order": "descending"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        1616,
+        -1696
+      ],
+      "id": "aa0e6afc-8d90-44a7-978f-b06e285e4209",
+      "name": "Prioritize Research Sources"
+    },
+    {
+      "parameters": {
+        "maxItems": 8
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1840,
+        -1696
+      ],
+      "id": "c78a7ce4-7379-4f6b-9b1d-88b23ae29282",
+      "name": "Limit Page Candidates"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.source_url_normalized }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (compatible; WF-02-CompanyResearch/1.0)"
+            },
+            {
+              "name": "Accept",
+              "value": "text/html,application/xhtml+xml"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2032,
+        -1584
+      ],
+      "id": "ddfe62ea-9a2e-4e14-927c-baba3f872f70",
+      "name": "HTTP Page Retrieval",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const input = $json;\n\nconst statusCode = Number(input.statusCode ?? 0);\n\nconst body = String(\n  input.data ??\n  input.body ??\n  ''\n);\n\nconst normalized = body\n  .replace(/\\s+/g, ' ')\n  .trim()\n  .toLowerCase();\n\nconst bodyLength = body.length;\n\nconst blockedSignals = [\n  'captcha',\n  'verify you are human',\n  'access denied',\n  'cloudflare',\n  'checking your browser',\n  'just a moment',\n  'bot detection',\n  'unusual traffic',\n  'enable javascript'\n];\n\nconst isBlocked = blockedSignals.some(\n  signal => normalized.includes(signal)\n);\n\nlet retrieval_status;\nlet retrieval_reason;\n\nif (statusCode >= 200 && statusCode < 300) {\n\n  if (bodyLength < 300) {\n    retrieval_status = 'empty';\n    retrieval_reason = 'Response body is too short';\n\n  } else if (isBlocked) {\n    retrieval_status = 'blocked';\n    retrieval_reason = 'Detected bot/challenge/block page';\n\n  } else {\n    retrieval_status = 'success';\n    retrieval_reason = 'Usable HTTP response received';\n  }\n\n} else if (statusCode === 403) {\n\n  retrieval_status = 'blocked';\n  retrieval_reason = 'HTTP 403 Forbidden';\n\n} else if (statusCode === 404) {\n\n  retrieval_status = 'not_found';\n  retrieval_reason = 'HTTP 404 Not Found';\n\n} else if (statusCode === 429) {\n\n  retrieval_status = 'rate_limited';\n  retrieval_reason = 'HTTP 429 Too Many Requests';\n\n} else if (statusCode >= 500) {\n\n  retrieval_status = 'server_error';\n  retrieval_reason = `HTTP ${statusCode}`;\n\n} else if (statusCode >= 400) {\n\n  retrieval_status = 'client_error';\n  retrieval_reason = `HTTP ${statusCode}`;\n\n} else {\n\n  retrieval_status = 'unknown';\n  retrieval_reason = 'HTTP status code unavailable';\n}\n\nreturn {\n  json: {\n    ...input,\n    retrieval_status,\n    retrieval_reason,\n    retrieval_status_code: statusCode,\n    retrieval_body_length: bodyLength,\n    research_attempted: true,\n    research_retrieved: retrieval_status === 'success'\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        -1392
+      ],
+      "id": "08c9a204-0725-4b6b-8a38-228609f90ac1",
+      "name": "Classify Retrieval Result"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8d651e65-5937-483f-bb5f-6f3295cd7bd1",
+              "leftValue": "={{ $json.retrieval_status }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        928,
+        -1392
+      ],
+      "id": "98218166-24ff-4812-8697-b079b3fd0242",
+      "name": "Retrieval Success?"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2288,
+        -1632
+      ],
+      "id": "bea1eb22-aae8-46a5-a5fc-aff46ebb965b",
+      "name": "Merge Retrieval Metadata"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "page_content",
+              "cssSelector": "body"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        1152,
+        -1424
+      ],
+      "id": "b2e5a5bd-af58-461a-911a-f0859677e1b2",
+      "name": "Extract Page Content"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1d31e00c-30bc-47fa-92be-d066aa47d872",
+              "name": "page_content",
+              "value": "={{ $json.page_content }}",
+              "type": "string"
+            },
+            {
+              "id": "8ec81c40-c66b-420e-b7fe-e53add9b959c",
+              "name": "page_content_length",
+              "value": "={{ ($json.page_content || '').length }}",
+              "type": "string"
+            },
+            {
+              "id": "bcb5e5b0-3366-4798-a3b8-32da933c19b1",
+              "name": "content_source_url",
+              "value": "={{ $('Retrieval Success?').item.json.source_url_normalized }}",
+              "type": "string"
+            },
+            {
+              "id": "89b06251-c963-457d-923b-7951240ca190",
+              "name": "content_retrieved_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1376,
+        -1424
+      ],
+      "id": "6e5be617-cd26-4ee9-8324-13f1ef758842",
+      "name": "Preserve Page Research Record"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "72e44924-af3a-4949-bbf3-4eb3e278fc95",
+              "leftValue": "={{ Number($json.page_content_length) }}",
+              "rightValue": 300,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1600,
+        -1424
+      ],
+      "id": "1b703cc0-f998-474e-8c43-c2b30c52c1a8",
+      "name": "Check Page Content"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d7897b59-76bc-4e76-99b9-657f9f2159c3",
+              "name": "research_source",
+              "value": "={{ $('Retrieval Success?').item.json.source_url_normalized || $json.content_source_url || ''  }}",
+              "type": "string"
+            },
+            {
+              "id": "32065025-0fab-49c5-8a5f-a0ad7e83bc97",
+              "name": "research_source_title",
+              "value": "={{ $('Retrieval Success?').item.json.source_title || ''  }}",
+              "type": "string"
+            },
+            {
+              "id": "93ab760f-43ff-4401-9456-0869d699bc78",
+              "name": "research_source_type",
+              "value": "={{ $('Retrieval Success?').item.json.source_class || $json.source_type || $json.evidence_source_type || 'UNKNOWN'  }}",
+              "type": "string"
+            },
+            {
+              "id": "bb1d4f2d-1fdb-45f3-93c3-e0f575cfed3c",
+              "name": "research_source_tier",
+              "value": "={{ Number ($('Classify Retrieval Result').item.json.source_tier || 3) }}",
+              "type": "number"
+            },
+            {
+              "id": "e151d0d6-c246-4a22-9ded-757e8f56556c",
+              "name": "research_evidence_text",
+              "value": "={{ $json.research_evidence_text || $json.page_content || $json.search_snippet || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "83fa03e5-f364-442b-9f77-a40b28492ebc",
+              "name": "evidence_status",
+              "value": "={{ $json.evidence_status || ($json.retrieval_status === 'success' ? 'READY' : 'FALLBACK') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1840,
+        -1328
+      ],
+      "id": "69416748-0517-4b92-b8bb-d50b2d78ed08",
+      "name": "Prepare Research Evidence"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.research_evidence_text }}",
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"company_description\": {\n      \"type\": \"string\"\n    },\n    \"industry\": {\n      \"type\": \"string\"\n    },\n    \"products_services\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"target_industries\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"business_model\": {\n      \"type\": \"string\"\n    },\n    \"technology_stack\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"partnerships\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"recent_events\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"growth_signals\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"revenue_range\": {\n      \"type\": \"string\"\n    },\n    \"employee_range\": {\n      \"type\": \"string\"\n    },\n    \"headquarters\": {\n      \"type\": \"string\"\n    },\n    \"founded_year\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"company_description\",\n    \"industry\",\n    \"products_services\",\n    \"target_industries\",\n    \"business_model\",\n    \"technology_stack\",\n    \"partnerships\",\n    \"recent_events\",\n    \"growth_signals\",\n    \"revenue_range\",\n    \"employee_range\",\n    \"headquarters\",\n    \"founded_year\"\n  ]\n}",
+        "options": {
+          "systemPromptTemplate": "You are the Company Fact Extraction stage of an AI Sales CRM.\n\nExtract ONLY facts explicitly supported by the supplied research evidence.\n\nRules:\n1. Never invent facts.\n2. Never infer missing facts.\n3. Never use outside knowledge.\n4. Preserve the meaning of the source.\n5. If a field is not supported, return an empty string or empty array.\n6. Keep company facts separate from sales interpretation.\n7. Do not create prospecting recommendations.\n8. Do not identify people unless the evidence explicitly provides the information as a company fact.\n9. Recent events must include the event and date when the date is available.\n10. Technology stack must contain technologies explicitly mentioned by the evidence.\n11. Products/services must contain offerings explicitly supported by the evidence.\n12. Growth signals must only contain explicitly stated growth indicators.\n13. Revenue and employee values must preserve the source's wording/range.\n14. Headquarters must only be populated when explicitly supported.\n15. Founded year must only be populated when explicitly supported.\n\nReturn only the structured fields defined by the schema."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        2048,
+        -1440
+      ],
+      "id": "46ad1161-1dfd-4c8b-aa93-d4a87675c07c",
+      "name": "Company Fact Extraction"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2304,
+        -1232
+      ],
+      "id": "c78fd9ce-c9e0-4865-a952-3bf16b3774d8",
+      "name": "Merge Extracted Facts"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bf0b5352-4d25-42c0-bf8e-4e833a29157f",
+              "name": "company_description",
+              "value": "={{ $json.output.company_description }}",
+              "type": "string"
+            },
+            {
+              "id": "b2766412-a249-414e-b27b-bfd2cf1153d6",
+              "name": "industry",
+              "value": "={{ $json.output.industry }}",
+              "type": "string"
+            },
+            {
+              "id": "6a239658-7e48-448e-bcf2-8a8d85b5ac8c",
+              "name": "products_services",
+              "value": "={{ $json.output.products_services }}",
+              "type": "array"
+            },
+            {
+              "id": "2853d18f-6bd1-4647-b662-57939d7d5571",
+              "name": "target_industries",
+              "value": "={{ $json.output.target_industries }}",
+              "type": "array"
+            },
+            {
+              "id": "0a9948f3-f740-4205-8779-d3d3b0ff8fe4",
+              "name": "business_model",
+              "value": "={{ $json.output.business_model }}",
+              "type": "string"
+            },
+            {
+              "id": "6d8797a3-5f29-455c-bed2-7fbf798b4d4b",
+              "name": "technology_stack",
+              "value": "={{ $json.output.technology_stack }}",
+              "type": "array"
+            },
+            {
+              "id": "f83114ff-ff86-4626-b20d-64a0b99168db",
+              "name": "partnerships",
+              "value": "={{ $json.output.partnerships }}",
+              "type": "array"
+            },
+            {
+              "id": "a43a9cbf-a562-4a53-ad3a-5c4882145772",
+              "name": "recent_events",
+              "value": "={{ $json.output.recent_events }}",
+              "type": "array"
+            },
+            {
+              "id": "70ec0475-5844-4e40-9e8d-8f4f8c91eb72",
+              "name": "growth_signals",
+              "value": "={{ $json.output.growth_signals }}",
+              "type": "array"
+            },
+            {
+              "id": "0dcfcf73-96fe-4ca0-a50d-2e313735d1df",
+              "name": "revenue_range",
+              "value": "={{ $json.output.revenue_range }}",
+              "type": "string"
+            },
+            {
+              "id": "9fed1c14-d08b-4c41-9aa9-93edcdc8b959",
+              "name": "employee_range",
+              "value": "={{ $json.output.employee_range }}",
+              "type": "string"
+            },
+            {
+              "id": "ffabe576-cd37-4b04-97e8-e939952a736f",
+              "name": "headquarters",
+              "value": "={{ $json.output.headquarters }}",
+              "type": "string"
+            },
+            {
+              "id": "ee8f8f39-2e34-46a7-9429-ac72adb4da72",
+              "name": "founded_year",
+              "value": "={{ $json.output.founded_year }}",
+              "type": "string"
+            },
+            {
+              "id": "786fb284-36c7-480b-b05d-a777655f1ddd",
+              "name": "research_status",
+              "value": "RESEARCHED",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        -1008
+      ],
+      "id": "be807951-abb2-4f7c-8e38-2b6614d83026",
+      "name": "Normalize Company Research"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        896,
+        -1008
+      ],
+      "id": "5fad35d3-934a-4c53-aa30-66a9f214cc7a",
+      "name": "Aggregate Source Research"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4987d0e2-0cda-417c-8d2c-7c9fae8d293a",
+              "name": "research_id",
+              "value": "={{ $('Retrieval Success?').first().json.research_id }}",
+              "type": "string"
+            },
+            {
+              "id": "8560c381-862e-421d-af57-0f19a7ade621",
+              "name": "company_name",
+              "value": "={{ $('Retrieval Success?').first().json.company_name }}",
+              "type": "string"
+            },
+            {
+              "id": "095759d2-8484-429b-b231-f4ef4a002f23",
+              "name": "company_domain",
+              "value": "={{ $('Retrieval Success?').first().json.company_domain }}",
+              "type": "string"
+            },
+            {
+              "id": "499895e8-0f8f-4599-b076-8b30c745b61b",
+              "name": "lead_id",
+              "value": "={{ $('Receive Canonical Lead').first().json.lead_id }}",
+              "type": "string"
+            },
+            {
+              "id": "97c68f7c-d227-41f2-be54-40ede4fd88ca",
+              "name": "source_research_records",
+              "value": "={{ $json.data }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        -1008
+      ],
+      "id": "727434ed-c28b-48c5-bfc3-bf1934b26d14",
+      "name": "Build Aggregated Evidence"
+    },
+    {
+      "parameters": {
+        "text": "={{ JSON.stringify($json.source_research_records) }}",
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"company_description\": {\n      \"type\": \"string\"\n    },\n    \"industry\": {\n      \"type\": \"string\"\n    },\n    \"products_services\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"target_industries\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"business_model\": {\n      \"type\": \"string\"\n    },\n    \"technology_stack\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"partnerships\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"recent_events\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"growth_signals\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    },\n    \"revenue_range\": {\n      \"type\": \"string\"\n    },\n    \"employee_range\": {\n      \"type\": \"string\"\n    },\n    \"headquarters\": {\n      \"type\": \"string\"\n    },\n    \"founded_year\": {\n      \"type\": \"string\"\n    },\n    \"research_confidence\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"company_description\",\n    \"industry\",\n    \"products_services\",\n    \"target_industries\",\n    \"business_model\",\n    \"technology_stack\",\n    \"partnerships\",\n    \"recent_events\",\n    \"growth_signals\",\n    \"revenue_range\",\n    \"employee_range\",\n    \"headquarters\",\n    \"founded_year\",\n    \"research_confidence\"\n  ]\n}",
+        "options": {
+          "systemPromptTemplate": "You are the final Company Research Consolidation stage.\n\nReview all source-level research records supplied to you.\n\nRules:\n\n1. Use only facts supported by the supplied research records.\n2. Never invent missing information.\n3. Prefer higher-quality and higher-priority sources when sources conflict.\n4. Do not treat a search-result snippet as stronger evidence than a company source.\n5. Remove duplicate facts.\n6. Combine equivalent facts.\n7. Preserve uncertainty where sources disagree.\n8. Do not convert an inference into a fact.\n9. Do not create sales recommendations.\n10. Do not create lead scores.\n11. Do not create outreach messaging.\n12. Recent events must retain dates when available.\n13. Products and services must be explicitly supported.\n14. Technology stack must be explicitly supported.\n15. Revenue and employee ranges must preserve source wording.\n16. If a fact is unsupported, return an empty value.\n17. research_confidence must be one of:\n   HIGH\n   MEDIUM\n   LOW\n\nReturn only the structured schema."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        1344,
+        -1008
+      ],
+      "id": "84148c55-fec5-4970-a192-277b70f1ea70",
+      "name": "Consolidate Company Research"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3f18ed62-23c6-4610-ba8a-0084c4031442",
+              "leftValue": "={{ $json.output.company_description }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "1384c0e5-b5c6-4a42-92cf-7d798efb46eb",
+              "leftValue": "={{ $json.output.industry }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "de1a8010-7c21-4842-b4ef-91badeeb8ec2",
+              "leftValue": "={{ $json.output.products_services.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            },
+            {
+              "id": "b393efaf-fb95-42b5-969a-a1effccab5f6",
+              "leftValue": "={{ $json.output.products_services.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            },
+            {
+              "id": "1228fc35-2799-412f-ab03-fa682e7d7e18",
+              "leftValue": "={{ $json.output.research_confidence }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1696,
+        -1008
+      ],
+      "id": "88613f58-b3b1-4457-ae6a-c57e8aa709df",
+      "name": "Final Research Quality Check"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "56eec7e0-0a86-4ed5-a0ca-eb5ee091badf",
+              "name": "lead_id",
+              "value": "={{ $('Build Aggregated Evidence').item.json.lead_id }}",
+              "type": "string"
+            },
+            {
+              "id": "7611c6a7-76bf-49f3-a3f9-6ee32237e7ed",
+              "name": "research_id",
+              "value": "={{ $('Build Aggregated Evidence').item.json.research_id }}",
+              "type": "string"
+            },
+            {
+              "id": "cba688bb-278b-4d12-8d55-5a42ee97a2fd",
+              "name": "company_name",
+              "value": "={{ $('Build Aggregated Evidence').item.json.company_name }}",
+              "type": "string"
+            },
+            {
+              "id": "f7456e1d-7ecc-44db-90ac-c28c3a19d3e0",
+              "name": "company_domain",
+              "value": "={{ $('Build Aggregated Evidence').item.json.company_domain }}",
+              "type": "string"
+            },
+            {
+              "id": "3be10ce4-a0ef-457d-a27a-2dcc03f02428",
+              "name": "output.company_description",
+              "value": "={{ $json.output.company_description }}",
+              "type": "string"
+            },
+            {
+              "id": "5a36ee6c-af2a-4c82-b225-5f1f70f2f7b9",
+              "name": "output.industry",
+              "value": "={{ $json.output.industry }}",
+              "type": "string"
+            },
+            {
+              "id": "d6b138d4-bf6d-47d3-b6fc-1f514471bc4a",
+              "name": "output.products_services",
+              "value": "={{ $json.output.products_services }}",
+              "type": "array"
+            },
+            {
+              "id": "a5143e39-d50c-411f-88ca-f928669d3092",
+              "name": "output.target_industries",
+              "value": "={{ $json.output.target_industries }}",
+              "type": "array"
+            },
+            {
+              "id": "fe4f2655-0d13-4384-974d-f33f19e5a47c",
+              "name": "output.business_model",
+              "value": "={{ $json.output.business_model }}",
+              "type": "string"
+            },
+            {
+              "id": "cc486a25-2779-4293-a8d9-e863ac4481e8",
+              "name": "output.technology_stack",
+              "value": "={{ $json.output.technology_stack }}",
+              "type": "array"
+            },
+            {
+              "id": "3079acae-6801-47ed-ae10-28edb9afd4fd",
+              "name": "output.partnerships",
+              "value": "={{ $json.output.partnerships }}",
+              "type": "array"
+            },
+            {
+              "id": "a2b19271-024c-4258-a72b-b95cd7d4b298",
+              "name": "output.recent_events",
+              "value": "={{ $json.output.recent_events }}",
+              "type": "array"
+            },
+            {
+              "id": "603ee399-b493-4e7a-a162-db82c1918d5c",
+              "name": "output.growth_signals",
+              "value": "={{ $json.output.growth_signals }}",
+              "type": "array"
+            },
+            {
+              "id": "e830b489-2804-4583-afb0-b761495bbd5d",
+              "name": "output.revenue_range",
+              "value": "={{ $json.output.revenue_range }}",
+              "type": "string"
+            },
+            {
+              "id": "428f4ea7-2611-43e8-83f6-d6de6d1a779e",
+              "name": "output.employee_range",
+              "value": "={{ $json.output.employee_range }}",
+              "type": "string"
+            },
+            {
+              "id": "5767ae69-a21a-4f84-9dfd-652d0e32a2cc",
+              "name": "output.headquarters",
+              "value": "={{ $json.output.headquarters }}",
+              "type": "string"
+            },
+            {
+              "id": "fb061536-f793-4051-b122-c17f74dc63ed",
+              "name": "output.founded_year",
+              "value": "={{ $json.output.founded_year }}",
+              "type": "string"
+            },
+            {
+              "id": "6209c6c3-f9bd-4876-9efc-eab9a8d64944",
+              "name": "output.research_confidence",
+              "value": "={{ $json.output.research_confidence }}",
+              "type": "string"
+            },
+            {
+              "id": "cfdbb062-7d5f-4087-9cd5-ce7225ebb119",
+              "name": "research_status",
+              "value": "RESEARCHED",
+              "type": "string"
+            },
+            {
+              "id": "43855b0f-c289-43d4-8b0e-e598b2106e79",
+              "name": "research_version",
+              "value": "1.0",
+              "type": "string"
+            },
+            {
+              "id": "de30730a-acd3-43b8-bb26-3974a7af1f49",
+              "name": "researched_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1920,
+        -1008
+      ],
+      "id": "d5ff0c49-f06c-417a-afcf-a8f0ee38962d",
+      "name": "Build Final Company Research Object"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f03397e0-627b-4a52-86db-1efed73e63c5",
+              "name": "handoff_type",
+              "value": "COMPANY_RESEARCH_COMPLETE",
+              "type": "string"
+            },
+            {
+              "id": "b37a1f7d-ab4f-4f42-ae41-79c8504ebed6",
+              "name": "handoff_version",
+              "value": "1.0",
+              "type": "string"
+            },
+            {
+              "id": "a41b117d-46cc-476a-9caf-3a17f1477eac",
+              "name": "next_workflow",
+              "value": "WF-03",
+              "type": "string"
+            },
+            {
+              "id": "c147e356-0c70-4ab2-8807-1de42f9e7977",
+              "name": "handoff_status",
+              "value": "READY",
+              "type": "string"
+            },
+            {
+              "id": "dd5e6dcb-d742-4518-9f6a-2213b908e3ef",
+              "name": "handoff_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2144,
+        -1008
+      ],
+      "id": "89c8ad30-9ac8-4086-ad3d-8f4358ff6151",
+      "name": "Prepare WF-03 Handoff"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b6a12ff0-645c-47ca-86b1-04951e92e8ec",
+              "name": "lead_id",
+              "value": "={{ $json.lead_id }}",
+              "type": "string"
+            },
+            {
+              "id": "cd1ef900-3eaa-49dc-82cd-00c6170aaf6e",
+              "name": "research_id",
+              "value": "={{ $json.research_id }}",
+              "type": "string"
+            },
+            {
+              "id": "44aa7e78-6aee-4cdf-ac6c-7c4cb3935765",
+              "name": "company_name",
+              "value": "={{ $json.company_name }}",
+              "type": "string"
+            },
+            {
+              "id": "e1cd6b80-5738-419b-b66e-a9bff0f7c41e",
+              "name": "company_domain",
+              "value": "={{ $json.company_domain }}",
+              "type": "string"
+            },
+            {
+              "id": "db7adb8f-6234-4849-a106-cbf591dd4618",
+              "name": "research",
+              "value": "={{ $json.output }}",
+              "type": "object"
+            },
+            {
+              "id": "b2cad527-9a8e-4e57-ba6e-cb2dd2e8c016",
+              "name": "research_status",
+              "value": "={{ $json.research_status }}",
+              "type": "string"
+            },
+            {
+              "id": "fee938e5-b0d4-437f-89ab-b9889e78adc3",
+              "name": "research_version",
+              "value": "={{ $json.research_version }}",
+              "type": "string"
+            },
+            {
+              "id": "62844488-9e92-43bf-be22-3c01778f8625",
+              "name": "researched_at",
+              "value": "={{ $json.researched_at }}",
+              "type": "string"
+            },
+            {
+              "id": "c5fc19eb-c28e-4be6-9380-64cbc8aef869",
+              "name": "handoff_type",
+              "value": "={{ $json.handoff_type }}",
+              "type": "string"
+            },
+            {
+              "id": "7e2c2c61-ecc6-451f-94db-8098ff861917",
+              "name": "handoff_status",
+              "value": "={{ $json.handoff_status }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2368,
+        -1008
+      ],
+      "id": "4a019470-c8cd-4a8f-8918-a8b1f6b4793c",
+      "name": "Preserve WF-03 Research Object"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "65a97e47-a9ba-4fd1-bb64-c5965400264e",
+              "name": "research_evidence_text",
+              "value": "={{ $json.search_snippet || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "a89e3651-0586-450d-97b1-4732f36bef46",
+              "name": "evidence_status",
+              "value": "FALLBACK",
+              "type": "string"
+            },
+            {
+              "id": "9b7de5d4-100c-43e0-ae73-1acc2dee11d1",
+              "name": "retrieval_fallback",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "6c8db202-ca73-408b-9eee-92f617ca397f",
+              "name": "evidence_retrieval_status",
+              "value": "FALLBACK",
+              "type": "string"
+            },
+            {
+              "id": "79a4086e-c703-4e10-b2c8-eb645252b645",
+              "name": "content_source_url",
+              "value": "={{ $json.source_url_normalized \n\n $json.source_url \n\n '' }}",
+              "type": "string"
+            },
+            {
+              "id": "4dadf3c8-fb60-47f7-9f8d-805173d5e62f",
+              "name": "content_retrieved_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "4925d35a-3396-40c1-a360-2527d1950c66",
+              "name": "=page_content",
+              "value": "={{ $json.search_snippet \n\n '' }}",
+              "type": "string"
+            },
+            {
+              "id": "90019e64-795a-40d2-b5f1-546f3a0122f6",
+              "name": "page_content_length",
+              "value": "={{ ($json.search_snippet || '').length }}",
+              "type": "number"
+            },
+            {
+              "id": "7cc4d96f-e5c9-422c-be7c-a0c35da1d262",
+              "name": "evidence_source_type",
+              "value": "SEARCH_SNIPPET_FALLBACK",
+              "type": "string"
+            },
+            {
+              "id": "da34959e-5ee0-41eb-b83a-52a8848d7f2e",
+              "name": "evidence_quality",
+              "value": "LIMITED",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1152,
+        -1232
+      ],
+      "id": "b4dc8f36-07fe-4c87-b7aa-6627c4220734",
+      "name": "Prepare Fallback Evidence"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        2000,
+        -1168
+      ],
+      "id": "a7065e41-74fc-40b3-943f-56da2fe54f72",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Q7uyfzycskHIysSS",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1632,
+        -1168
+      ],
+      "id": "9ce460a2-1356-4f62-b918-1fd643fbd4c3",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "Q7uyfzycskHIysSS",
+          "name": "OpenAi account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Receive Canonical Lead": {
+      "main": [
+        [
+          {
+            "node": "Validate Research Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Research Input": {
+      "main": [
+        [
+          {
+            "node": "Classify Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Input": {
+      "main": [
+        [
+          {
+            "node": "Build Research Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Research Context": {
+      "main": [
+        [
+          {
+            "node": "Build Research Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Research Configuration": {
+      "main": [
+        [
+          {
+            "node": "Generate Research Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Research Queries": {
+      "main": [
+        [
+          {
+            "node": "Split Research Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Research Queries": {
+      "main": [
+        [
+          {
+            "node": "Tavily Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily Search": {
+      "main": [
+        [
+          {
+            "node": "Normalize Search Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Search Results": {
+      "main": [
+        [
+          {
+            "node": "Normalize Source URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Source URLs": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicate Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicate Sources": {
+      "main": [
+        [
+          {
+            "node": "Classify Research Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Research Sources": {
+      "main": [
+        [
+          {
+            "node": "Prioritize Research Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prioritize Research Sources": {
+      "main": [
+        [
+          {
+            "node": "Limit Page Candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit Page Candidates": {
+      "main": [
+        [
+          {
+            "node": "HTTP Page Retrieval",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Retrieval Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Page Retrieval": {
+      "main": [
+        [
+          {
+            "node": "Merge Retrieval Metadata",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Classify Retrieval Result": {
+      "main": [
+        [
+          {
+            "node": "Retrieval Success?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Retrieval Metadata": {
+      "main": [
+        [
+          {
+            "node": "Classify Retrieval Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrieval Success?": {
+      "main": [
+        [
+          {
+            "node": "Extract Page Content",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Fallback Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Page Content": {
+      "main": [
+        [
+          {
+            "node": "Preserve Page Research Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preserve Page Research Record": {
+      "main": [
+        [
+          {
+            "node": "Check Page Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Page Content": {
+      "main": [
+        [
+          {
+            "node": "Prepare Research Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Research Evidence": {
+      "main": [
+        [
+          {
+            "node": "Company Fact Extraction",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Extracted Facts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Company Fact Extraction": {
+      "main": [
+        [
+          {
+            "node": "Merge Extracted Facts",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Extracted Facts": {
+      "main": [
+        [
+          {
+            "node": "Normalize Company Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Company Research": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Source Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Source Research": {
+      "main": [
+        [
+          {
+            "node": "Build Aggregated Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Aggregated Evidence": {
+      "main": [
+        [
+          {
+            "node": "Consolidate Company Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidate Company Research": {
+      "main": [
+        [
+          {
+            "node": "Final Research Quality Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final Research Quality Check": {
+      "main": [
+        [
+          {
+            "node": "Build Final Company Research Object",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Final Company Research Object": {
+      "main": [
+        [
+          {
+            "node": "Prepare WF-03 Handoff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare WF-03 Handoff": {
+      "main": [
+        [
+          {
+            "node": "Preserve WF-03 Research Object",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preserve WF-03 Research Object": {
+      "main": [
+        []
+      ]
+    },
+    "Prepare Fallback Evidence": {
+      "main": [
+        [
+          {
+            "node": "Prepare Research Evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Company Fact Extraction",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Consolidate Company Research",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "14aafa4a-c9bb-4061-af49-7b1f85376c18",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1a6b1bb00b4eb5618347fcc8c1015361a8c2a4d0724140b1cb6311e793c50258"
+  },
+  "id": "CD6WPT8ztB8gjalN",
+  "tags": []
+}

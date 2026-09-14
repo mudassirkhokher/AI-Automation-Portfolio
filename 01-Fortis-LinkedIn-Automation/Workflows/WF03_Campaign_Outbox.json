@@ -1,0 +1,779 @@
+{
+  "name": "WF03_Campaign_Outbox",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1600,
+        -720
+      ],
+      "id": "d9e4b9cc-b8d9-47f3-810c-a3a35b8b3c53",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1DDjRa4vJBPttqTThucSCsI61hPOmR4GZyRkojcE8yXM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": 708092825
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Status",
+              "lookupValue": "AI_COMPLETE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1376,
+        -720
+      ],
+      "id": "07628f72-41bc-4c57-8570-ce49c70b6049",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qDqIQz3Rn4sdQGM7",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "maxItems": 10
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        -928,
+        -608
+      ],
+      "id": "f248ddef-a58a-4d5d-892c-8fee94cdcb6f",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -704,
+        -608
+      ],
+      "id": "c996e259-34c8-4f99-b6b0-7edea19901a3",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e0aeb913-478d-4d0f-a07d-6aa81b8385a4",
+              "leftValue": "={{ $json['AI Fallback'] }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1152,
+        -720
+      ],
+      "id": "6106f579-5a97-4482-b34c-10acc21ae5ac",
+      "name": "If"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -928,
+        -800
+      ],
+      "id": "37cf5948-d80c-4273-90b2-e5b2bb9a12bf",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "71c6e594-6d0e-4db8-bb3d-f95d1f8eaff7",
+              "name": "ConnectionMessage",
+              "value": "={{ $json[\"Greeting\"] }}\n\n{{ $json[\"Connection Reference\"] }} Ich würde mich freuen, mich mit Ihnen zu vernetzen.\n\nBeste Grüße\nNatalie Afchar",
+              "type": "string"
+            },
+            {
+              "id": "e03ca689-ef97-44ba-9876-2ac2c6478c9b",
+              "name": "=FirstMessage",
+              "value": "={{ $json[\"Greeting\"] }}\n\nvielen Dank, dass Sie meine Kontaktanfrage angenommen haben.\n\n{{ $json[\"Personalised Opening\"] }}\n\nAls Teamleiterin bei Fortis Inkasso unterstütze ich Unternehmen dabei, offene Forderungen professionell einzuziehen – sowohl bei einzelnen unbezahlten Rechnungen als auch bei größeren Forderungsbeständen. Dabei gehen wir konsequent vor und achten zugleich auf einen angemessenen Umgang mit den jeweiligen Kunden.\n\nFalls das Thema bei {{ $json[\"Company Name\"] }} aktuell oder künftig relevant ist, können wir gern unverbindlich besprechen, wie wir Sie entlasten können.\n\nFür die außergerichtliche Beitreibung fallen für Sie als Gläubiger keine Vorkosten oder festen Bearbeitungsgebühren an.\n\nEinen kurzen Gesprächstermin können Sie hier auswählen:\nhttps://calendly.com/fortis-inkasso\n\nEine konkrete Forderung können Sie direkt über unser Dashboard einreichen:\nhttps://fortis-portal.de/\n\nWeitere Informationen zu Fortis Inkasso finden Sie hier:\nhttps://fortis-inkasso.de/\n\nSie können mir auch direkt auf LinkedIn antworten oder uns über WhatsApp unter +49 157 83989618 schreiben.\n\nBeste Grüße\n\nNatalie Afchar  \nTeamleitung Fortis Inkasso",
+              "type": "string"
+            },
+            {
+              "id": "05acf401-8451-411e-beb0-e255ca4c8ea8",
+              "name": "FollowupMessage",
+              "value": "={{ $json[\"Greeting\"] }}\n\nich wollte mich noch einmal kurz bei Ihnen melden.\n\nVielleicht ist das Thema offene Forderungen bei {{ $json[\"Company Name\"] }} derzeit nicht akut. Dann behalten Sie meine Kontaktdaten gern für den Fall, dass künftig eine Rechnung offenbleibt.\n\nEine Forderung können Sie jederzeit direkt über unser Dashboard einreichen:\nhttps://fortis-portal.de/\n\nWenn Sie vorab kurz und unverbindlich sprechen möchten, können Sie mir direkt antworten oder hier einen Termin auswählen:\nhttps://calendly.com/fortis-inkasso\n\nAlternativ erreichen Sie uns auch über WhatsApp unter +49 157 83989618.\n\nBeste Grüße\n\nNatalie Afchar  \nTeamleitung Fortis Inkasso",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "include": "selected",
+        "includeFields": "['Queue ID'], ['First Name'], ['Last Name'], ['LinkedIn URL'], ['Job Title'], ['Company Name']",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -480,
+        -768
+      ],
+      "id": "e3e697f8-e1ff-42f2-9b8c-75011df361f5",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const fallbackConnection = `${$json[\"Greeting\"]}\n\nIch bin auf ${$json[\"Company Name\"]} aufmerksam geworden und würde mich freuen, mich mit Ihnen zu vernetzen.\n\nBeste Grüße\nNatalie Afchar`;\n\n// Ensure ConnectionMessage always exists\n$json.ConnectionMessage = $json.ConnectionMessage || \"\";\n\n// Calculate message length\n$json.ConnectionLength = $json.ConnectionMessage.length;\n\n// Apply fallback if LinkedIn limit is exceeded\nif ($json.ConnectionLength > 300) {\n\n    $json.ConnectionMessage = fallbackConnection;\n\n    $json.ConnectionLength = fallbackConnection.length;\n\n    $json[\"AI Fallback\"] = true;\n\n    $json[\"Fallback Reason\"] =\n        \"Personalised connection request exceeded LinkedIn's 300-character limit.\";\n\n} else {\n\n    $json[\"AI Fallback\"] = false;\n\n    $json[\"Fallback Reason\"] = \"\";\n\n}\n\n// Return the updated item\nreturn {\n    json: $json\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        -768
+      ],
+      "id": "4ff9c026-cf8f-4bf8-a8aa-7c088a23b976",
+      "name": "Connection Length Check"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const errors = [];\n\n// Required messages\nif (!$json.ConnectionMessage?.trim())\n    errors.push(\"Missing ConnectionMessage\");\n\nif (!$json.FirstMessage?.trim())\n    errors.push(\"Missing FirstMessage\");\n\nif (!$json.FollowupMessage?.trim())\n    errors.push(\"Missing FollowupMessage\");\n\n// Undefined / placeholder checks\n[\n    \"ConnectionMessage\",\n    \"FirstMessage\",\n    \"FollowupMessage\"\n].forEach(field => {\n\n    const value = String($json[field] ?? \"\");\n\n    if (value.includes(\"undefined\"))\n        errors.push(`${field} contains undefined`);\n\n    if (value.includes(\"null\"))\n        errors.push(`${field} contains null`);\n\n    if (value.includes(\"{{\"))\n        errors.push(`${field} contains unresolved variable`);\n});\n\n// LinkedIn character limit\nif (($json.ConnectionLength ?? 999) > 300)\n    errors.push(\"Connection message exceeds 300 characters\");\n\n// Greeting check\nif (!$json.ConnectionMessage?.startsWith(\"Guten Tag\"))\n    errors.push(\"Greeting missing\");\n\n// Final status\nif (errors.length > 0) {\n\n    $json.Status = \"MESSAGE_ERROR\";\n    $json.Errors = errors.join(\" | \");\n\n} else {\n\n    $json.Status = \"READY_TO_REVIEW\";\n    $json.Errors = \"\";\n\n}\n\n// Return updated item\nreturn {\n    json: $json\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        -768
+      ],
+      "id": "6f1baae5-2f2c-4ab3-b1d1-25b37055f777",
+      "name": "Validate Messages"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1Q4TEkDAK3NdvO3fk5HMKC-nHrly4yluXPKrPaoRkIX8"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": 1148470533
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Queue_ID": "={{ $('Limit').item.json['Queue ID'] }}",
+            "LinkedIn_URL": "={{ $('Limit').item.json['LinkedIn URL'] }}",
+            "Name": "={{ $('Limit').item.json['First Name'] }}",
+            "Company": "={{ $('Limit').item.json['Company Name'] }}",
+            "First_Message": "={{ $('Connection Length Check').item.json.FirstMessage }}",
+            "Connection_Message": "={{ $('Connection Length Check').item.json.ConnectionMessage }}",
+            "Followup_Message": "={{ $('Connection Length Check').item.json.FollowupMessage }}",
+            "Created_At": "={{ $now }}",
+            "Campaign_Status": "={{ $('Validate Messages').item.json.Status }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Queue_ID",
+              "displayName": "Queue_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "LinkedIn_URL",
+              "displayName": "LinkedIn_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Connection_Message",
+              "displayName": "Connection_Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "First_Message",
+              "displayName": "First_Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Followup_Message",
+              "displayName": "Followup_Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Campaign_Status",
+              "displayName": "Campaign_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phantom_Run_ID",
+              "displayName": "Phantom_Run_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Created_At",
+              "displayName": "Created_At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        640,
+        -768
+      ],
+      "id": "84b4029a-0fc7-41dc-9859-fae694e6abb5",
+      "name": "Campaign_Outbox (Review)",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qDqIQz3Rn4sdQGM7",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1Q4TEkDAK3NdvO3fk5HMKC-nHrly4yluXPKrPaoRkIX8"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": 478316641
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now }}",
+            "Workflow": "WF03_Campaign_Outbox",
+            "Lead ID": "={{ $('Loop Over Items').item.json['Lead ID'] }}",
+            "Lead": "={{ $('Loop Over Items').item.json['First Name'] }} {{ $('Loop Over Items').item.json['Last Name'] }}",
+            "Action": "Messages Generated",
+            "Result ": "={{ $json.Campaign_Status }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Workflow",
+              "displayName": "Workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead ID",
+              "displayName": "Lead ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lead",
+              "displayName": "Lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Action",
+              "displayName": "Action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Result ",
+              "displayName": "Result ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reason ",
+              "displayName": "Reason ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Queue ID",
+              "displayName": "Queue ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Duration",
+              "displayName": "Duration",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Node",
+              "displayName": "Node",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Execution ID",
+              "displayName": "Execution ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Previous Status",
+              "displayName": "Previous Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "New Status",
+              "displayName": "New Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phantom Status",
+              "displayName": "Phantom Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Container ID",
+              "displayName": "Container ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        864,
+        -656
+      ],
+      "id": "fd172cc2-e1e1-4016-a998-2478b8aa7c42",
+      "name": "Append Audit Log",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qDqIQz3Rn4sdQGM7",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Q4TEkDAK3NdvO3fk5HMKC-nHrly4yluXPKrPaoRkIX8",
+          "mode": "list",
+          "cachedResultName": "Fortis LinkedIn Automation - DEV",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Q4TEkDAK3NdvO3fk5HMKC-nHrly4yluXPKrPaoRkIX8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1148470533,
+          "mode": "list",
+          "cachedResultName": "Campaign_Outbox",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Q4TEkDAK3NdvO3fk5HMKC-nHrly4yluXPKrPaoRkIX8/edit#gid=1148470533"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Queue_ID",
+              "lookupValue": "={{ $json['Queue ID'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        192,
+        -768
+      ],
+      "id": "f2054b4f-6f2d-4eb4-a30a-23773562e08f",
+      "name": "Get row(s) in sheet1",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qDqIQz3Rn4sdQGM7",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9b8655aa-f968-4ea7-9198-9a62895b7fc1",
+              "leftValue": "={{ $json.Queue_ID }}",
+              "rightValue": "={{ $('Validate Messages').item.json['Queue ID'] }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        416,
+        -768
+      ],
+      "id": "da028ee4-bc20-4c70-aa5e-c9761315e302",
+      "name": "Duplicate?",
+      "alwaysOutputData": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Connection Length Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Connection Length Check": {
+      "main": [
+        [
+          {
+            "node": "Validate Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Messages": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Campaign_Outbox (Review)": {
+      "main": [
+        [
+          {
+            "node": "Append Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Duplicate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicate?": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Campaign_Outbox (Review)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "a0285aa8-2643-4bd5-940d-623ff658cf98",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "85f6e48ae1ffde2753bae92196b60db76ca159ffe1720ebcfd0298037aee88de"
+  },
+  "nodeGroups": [],
+  "id": "FhubgJSs9zGB4x4A",
+  "tags": []
+}

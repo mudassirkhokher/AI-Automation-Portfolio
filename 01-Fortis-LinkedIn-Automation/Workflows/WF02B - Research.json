@@ -1,0 +1,1087 @@
+{
+  "name": "WF02B - Research",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1392,
+        80
+      ],
+      "id": "8b1607db-39d7-41bb-9010-70dfdd9a6721",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1DDjRa4vJBPttqTThucSCsI61hPOmR4GZyRkojcE8yXM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": 708092825
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Status",
+              "lookupValue": "SCRAPING"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1168,
+        80
+      ],
+      "id": "3bffc508-6d60-4cd5-834a-12245dcff827",
+      "name": "Read Queue",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qDqIQz3Rn4sdQGM7",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ec631f96-1590-4533-9a6b-d65e2af20f87",
+              "leftValue": "={{ $json['Container ID'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1104,
+        432
+      ],
+      "id": "38311e6a-7511-4533-b81a-3950d32c4d2c",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -816,
+        304
+      ],
+      "id": "0bf23da7-a8e4-464a-98ee-1c769ce423a2",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "operation": "getOutput",
+        "agentId": "3812550560411527",
+        "additionalFields": {
+          "prevContainerId": "={{ $json['Container ID'] }}"
+        }
+      },
+      "type": "n8n-nodes-base.phantombuster",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        288
+      ],
+      "id": "f24e656c-f4e1-4e25-9b12-31f21c76054b",
+      "name": "Get the output of an agent",
+      "credentials": {
+        "phantombusterApi": {
+          "id": "JEUNfkl0UviLCZPw",
+          "name": "Phantombuster account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -32,
+        224
+      ],
+      "id": "ddbf29a9-8fbe-4c5d-bf34-dc6162cc95c6",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const profile = $json;\n\nconst completed =\n    profile.linkedinProfileUrl !== undefined &&\n    profile.linkedinProfileUrl !== null &&\n    profile.linkedinProfileUrl !== \"\";\n\nreturn [\n{\njson:{\n...profile,\nresearchCompleted: completed\n}\n}\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        336
+      ],
+      "id": "b292564d-407b-4ed8-886d-234e678cfbae",
+      "name": "Detect Complition"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "fae6cb5d-9311-4d29-bcc8-63bb992b3a26",
+              "leftValue": "={{$json.researchCompleted}}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        400,
+        256
+      ],
+      "id": "88554cdd-4cdb-4334-9ce3-765100cba606",
+      "name": "Research Complete?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $json;\n\nreturn [{\n  json: {\n    // ============================================================\n    // ORIGINAL QUEUE INFORMATION\n    // ============================================================\n\n    \"Queue ID\": p[\"Queue ID\"],\n    \"Lead ID\": p[\"Lead ID\"],\n\n    \"First Name\": p[\"First Name\"],\n    \"Last Name\": p[\"Last Name\"],\n\n    \"LinkedIn URL\": p[\"LinkedIn URL\"],\n\n    \"Job Title\": p[\"Job Title\"],\n    \"Seniority\": p[\"Seniority\"],\n\n    \"Company Name\": p[\"Company Name\"],\n    \"Company Website\": p[\"Company Website\"],\n\n    \"Industry\": p[\"Industry\"],\n    \"Country\": p[\"Country\"],\n    \"City\": p[\"City\"],\n    \"Company Size\": p[\"Company Size\"],\n\n    // ============================================================\n    // PHANTOMBUSTER RESEARCH\n    // ============================================================\n\n    Headline: p.linkedinHeadline || \"\",\n\n    About: p.linkedinDescription || \"\",\n\n    Skills: p.linkedinSkillsLabel || \"\",\n\n    CurrentRole: p.linkedinJobTitle || \"\",\n\n    // ----------------------------\n    // FIX #1\n    // ----------------------------\n    CurrentCompany:\n      p.companyName ||\n      p[\"Company Name\"] ||\n      \"\",\n\n    CompanySummary: p.linkedinCompanyDescription || \"\",\n\n    // ----------------------------\n    // FIX #2\n    // ----------------------------\n    CompanyIndustry:\n      p.companyIndustry ||\n      p[\"Industry\"] ||\n      \"\",\n\n    // ----------------------------\n    // FIX #3\n    // ----------------------------\n    CompanyWebsite:\n      p.companyWebsite ||\n      p[\"Company Website\"] ||\n      \"\",\n\n    CompanySize: p.linkedinCompanySize || \"\",\n\n    CompanyFollowers: p.linkedinCompanyFollowerCount || 0,\n\n    Followers: p.linkedinFollowersCount || 0,\n\n    Location: p.location || \"\",\n\n    ProfileURL: p.linkedinProfileUrl || \"\",\n\n    ConnectionDegree: p.connectionDegree || \"\",\n\n    // ============================================================\n    // OPTIONAL PROFILE DETAILS\n    // ============================================================\n\n    OpenToWork: p.linkedinIsOpenToWorkBadge || false,\n\n    HiringBadge: p.linkedinIsHiringBadge || false,\n\n    CurrentJobDate: p.linkedinJobDateRange || \"\",\n\n    PreviousRole: p.linkedinPreviousJobTitle || \"\",\n\n    PreviousCompany: p.previousCompanyName || \"\",\n\n    PreviousJobDate: p.linkedinPreviousJobDateRange || \"\",\n\n    Education: p.linkedinSchoolName || \"\",\n\n    Degree: p.linkedinSchoolDegree || \"\",\n\n    FieldOfStudy: p.linkedinSchoolFieldOfStudy || \"\",\n\n    CompanyFounded: p.linkedinCompanyFounded || \"\",\n\n    CompanyEmployees: p.linkedinCompanyEmployeesCount || \"\",\n\n    CompanyHQ: p.linkedinCompanyHeadquarter || \"\",\n\n    CompanyTagline: p.linkedinCompanyTagline || \"\",\n\n    CompanySpecialities: p.linkedinCompanySpecialities || \"\",\n\n    // ============================================================\n    // WORKFLOW METADATA\n    // ============================================================\n\n    ResearchSource: \"Phantombuster\",\n\n    ResearchConfidence: 100,\n\n    researchCompleted: true\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        160
+      ],
+      "id": "dc39f23c-1233-4579-9130-93a23f6b4503",
+      "name": "Normalize Research"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0eddc832-7f31-4de2-9f8d-529745e49844",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1Q4TEkDAK3NdvO3fk5HMKC-nHrly4yluXPKrPaoRkIX8"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": 478316641
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Queue ID": "={{ $json['Queue ID'] }}",
+            "Timestamp": "={{$now}}",
+            "Workflow": "WF02B",
+            "Lead ID": "={{ $('Normalize Research').item.json['Lead ID'] }}",
+            "Lead": "={{ $('Normalize Research').item.json['First Name'] }} {{ $('Normalize Research').item.json['Last Name'] }}",
+            "Action": "Research Completed",
+            "Result ": "SUCCESS"
+          },
+          "matchingColumns": [
+            "Queue ID"
+          ],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Workflow",
+              "displayName": "Workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead ID",
+              "displayName": "Lead ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead",
+              "displayName": "Lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Action",
+              "displayName": "Action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Result ",
+              "displayName": "Result ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Reason ",
+              "displayName": "Reason ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Queue ID",
+              "displayName": "Queue ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Duration",
+              "displayName": "Duration",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Node",
+              "displayName": "Node",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Execution ID",
+              "displayName": "Execution ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Previous Status",
+              "displayName": "Previous Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "New Status",
+              "displayName": "New Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phantom Status",
+              "displayName": "Phantom Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Container ID",
+              "displayName": "Container ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1120,
+        608
+      ],
+      "id": "9f70deab-1c20-4385-878f-c71dd09ea605",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qDqIQz3Rn4sdQGM7",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        704,
+        480
+      ],
+      "id": "de74d2ab-a80b-41fd-ac7a-1d5cee32247e",
+      "name": "Wait",
+      "webhookId": "562af8ea-dea3-41c3-a198-1108986f4fc3",
+      "retryOnFail": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        848,
+        64
+      ],
+      "id": "b5f19597-2c8d-4315-8298-2ee8499ee9ce",
+      "name": "Wait1",
+      "webhookId": "8bee9303-2d9c-4ea8-a6c0-871c0fa69a35"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1DDjRa4vJBPttqTThucSCsI61hPOmR4GZyRkojcE8yXM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": 708092825
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Queue ID": "={{ $json['Queue ID'] }}",
+            "Status": "AI_COMPLETE",
+            "Research Status": "COMPLETED",
+            "Research Source": "={{ $json.ResearchSource }}",
+            "Research Confidence": "={{ $json.ResearchConfidence }}",
+            "Updated At": "={{$now}}",
+            "Company Summary": "={{ $json.CompanySummary }}",
+            "Country": "=",
+            "Industry": "={{ $json.CompanyIndustry }}",
+            "Company Size": "={{ $json.CompanySize }}"
+          },
+          "matchingColumns": [
+            "Queue ID"
+          ],
+          "schema": [
+            {
+              "id": "Queue ID",
+              "displayName": "Queue ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Lead ID",
+              "displayName": "Lead ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "LinkedIn URL",
+              "displayName": "LinkedIn URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job Title",
+              "displayName": "Job Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Seniority",
+              "displayName": "Seniority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Name",
+              "displayName": "Company Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Website",
+              "displayName": "Company Website",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Industry",
+              "displayName": "Industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Country",
+              "displayName": "Country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "City",
+              "displayName": "City",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Size",
+              "displayName": "Company Size",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Greeting",
+              "displayName": "Greeting",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Connection Reference",
+              "displayName": "Connection Reference",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Personalised Opening",
+              "displayName": "Personalised Opening",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Summary",
+              "displayName": "Company Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Research Source",
+              "displayName": "Research Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Research Confidence",
+              "displayName": "Research Confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Confidence",
+              "displayName": "AI Confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Fallback",
+              "displayName": "AI Fallback",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Container ID",
+              "displayName": "Container ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Launch Start At",
+              "displayName": "Launch Start At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Connection Sent",
+              "displayName": "Connection Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Accepted",
+              "displayName": "Accepted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "First Message Sent",
+              "displayName": "First Message Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Follow-up Sent",
+              "displayName": "Follow-up Sent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reply Received",
+              "displayName": "Reply Received",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Status",
+              "displayName": "AI Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Research Status",
+              "displayName": "Research Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Connection Status",
+              "displayName": "Connection Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Campaign ID",
+              "displayName": "Campaign ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Attempt Count",
+              "displayName": "Attempt Count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Error",
+              "displayName": "Last Error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Retry After",
+              "displayName": "Retry After",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Created At",
+              "displayName": "Created At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Updated At",
+              "displayName": "Updated At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        848,
+        256
+      ],
+      "id": "8eedd037-29d8-4c63-abaa-fc016b8ce962",
+      "name": "Update Queue",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qDqIQz3Rn4sdQGM7",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "zGcP9oGtZiXXA05t",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/zGcP9oGtZiXXA05t",
+          "cachedResultName": "WF03 - AI Personalization"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1072,
+        64
+      ],
+      "id": "a227c28d-50fd-46ff-9f8e-82df9b66cd70",
+      "name": "Call 'WF03 - AI Personalization'"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Queue": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Get the output of an agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get the output of an agent": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Detect Complition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Complition": {
+      "main": [
+        [
+          {
+            "node": "Research Complete?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research Complete?": {
+      "main": [
+        [
+          {
+            "node": "Normalize Research",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Research": {
+      "main": [
+        [
+          {
+            "node": "Update Queue",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Get the output of an agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Call 'WF03 - AI Personalization'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Queue": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "0cb166a9-5cf1-4949-9a56-296a71605179",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "85f6e48ae1ffde2753bae92196b60db76ca159ffe1720ebcfd0298037aee88de"
+  },
+  "nodeGroups": [],
+  "id": "71K9VBrjd5itHdui",
+  "tags": []
+}
