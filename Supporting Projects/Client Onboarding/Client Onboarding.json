@@ -1,0 +1,436 @@
+{
+  "name": "Client Onboarding",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Welcome to StorryDotTech",
+        "formDescription": "Kindly fill in the information below to get started with StorryDotTech",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Full Name",
+              "placeholder": "Enter Your Full Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "placeholder": "email@email.com",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Comany Name",
+              "placeholder": "Enter your Comany Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Required Services",
+              "placeholder": "Web Application Development, Mobile Development ",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Industry",
+              "placeholder": "Tech, Ecom, Design",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Starting Date",
+              "fieldType": "date"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        -64,
+        176
+      ],
+      "id": "889a3284-5b8a-4749-864f-a2792ee21ae2",
+      "name": "On form submission",
+      "webhookId": "33d9fec3-3b20-4d2c-8461-0d728b10050b"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9475bfec-8313-4e7e-a8f2-256b61b5ad4c",
+              "name": "Name",
+              "value": "={{ $json['Full Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "ff5e328b-a614-4c5b-9207-937386c95ff1",
+              "name": "Email",
+              "value": "={{ $json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "f781f34c-3d23-4999-9009-0c3135a256b5",
+              "name": "Comany Name",
+              "value": "={{ $json['Comany Name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "3d40e732-15c7-4be3-98a5-78dcb3ec46cd",
+              "name": "Required Services",
+              "value": "={{ $json['Required Services'] }}",
+              "type": "string"
+            },
+            {
+              "id": "34066d2b-d1bb-4300-8c71-c0d3ffdc6de2",
+              "name": "Industry",
+              "value": "={{ $json.Industry }}",
+              "type": "string"
+            },
+            {
+              "id": "5bc0b149-a210-4fb9-8dc2-e1d5552ba076",
+              "name": "Starting Date",
+              "value": "={{ $json['Starting Date'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        176,
+        176
+      ],
+      "id": "4f489149-3a93-45a6-95a9-4a7acad65e06",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        400,
+        80
+      ],
+      "id": "08e2f855-26d5-40b4-9fc3-f4babde94061",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a personalized welcome email to Client, Client Name is  {{ $json.Name }},\nclient Email is {{ $json.Email }} from StorryDotTech(An Agency that provides Tech and Agentic Solutions).\n\nClient is in the {{ $json.Industry }} industry and need services for {{ $json['Required Services'] }}. The services will start on {{ $json['Starting Date'] }}. The tone should be professional yet friendly. Include a mention that we are excited to work with them.\n\nAlso let them know that they will be receiving a separate email with the terms of the services agreement that they need to sign or simply respond to the email.\n\nStorryDotTech Owner Name is: Mudasir Tahir\nStorryDotTech Phone Number is: +923000047125\nStorryDotTech email is: info@storry.com",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        480,
+        -160
+      ],
+      "id": "969fa49f-2f9c-47d4-9fa0-d9a978599ac1",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Edit Fields').item.json.Email }}",
+        "subject": "={{ $json.output[0].content[0].text.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.output[0].content[0].text.body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1168,
+        -160
+      ],
+      "id": "90029940-0a43-42d3-a0ce-39099c4e4797",
+      "name": "Send a message",
+      "webhookId": "e0547ae6-7125-4519-a3fe-927bbdfa20ef",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Ap9gBa5zzlje8DzA",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Parse the JSON \"output\" and output the following parameters separately:\n\nSubject\nBody"
+            },
+            {
+              "content": "={{ $json.output }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_schema",
+              "schema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"subject\": {\n      \"type\": \"string\",\n      \"description\": \"the actual subject of the email\"\n    },\n        \"body\": {\n      \"type\": \"string\",\n      \"description\": \"the content of the email, full email without subject\"\n    }\n  },\n  \"additionalProperties\": false,\n  \"required\": [\"subject\",\"body\"]\n}"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        816,
+        -160
+      ],
+      "id": "2d743c3c-f4da-480d-a8e5-343fd104865d",
+      "name": "Welcome Email",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "= Please generate a Terms of Service and Contract document for Client {{ $json.Name }} from StorryDotTech. The client operates in the {{ $json.Industry }} industry and requires the services of {{ $json['Required Services'] }} starting from {{ $json['Starting Date'] }}. The contract includes:\n\n1. An introduction outlining the purpose of the contract. \n2. The scope of services.\n3. Payment terms.\n4. Obligations of both parties.\n5. Terms and conditions, including liability clauses.\n6. A section for the client's signature.\n\nService Provider is Always: StorryDotTech\nStorryDotTech Owner Name is: Mudasir Tahir\nStorryDotTech Phone Number is: +923000047125\nStorryDotTech email is: info@storry.com\n\nGenerate a contract with full details by yourself cause we didn't edit it, just return a full, clear contract with no other text.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        480,
+        384
+      ],
+      "id": "79edf345-4621-45cb-a280-960c28473fb6",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        416,
+        624
+      ],
+      "id": "ab249820-1b55-40fc-ae1e-d5d4098dc6d2",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "={{ $json.output }}"
+            },
+            {
+              "role": "system",
+              "content": "Parse the JSON 'output' and return the following parameters:\n\n-Title: Extract only the \"title\" field.\n-Body: Combine all other fields into a single text block and format it like an official contract (e.g., NDA or Terms of Services)."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_schema",
+              "schema": "={\n  \"type\": \"object\",\n  \"properties\": {\n    \"title\": {\n      \"type\": \"string\",\n      \"description\": \"Extract only the title field.\"\n    },\n    \"body\": {\n      \"type\": \"string\",\n      \"description\": \"Combine all other fields into a single text block and format it like an official contract (e.g., NDA or Terms of Services).\"\n    }\n  },\n  \"additionalProperties\": false,\n  \"required\": [\"title\", \"body\"]\n}\n\n"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        832,
+        384
+      ],
+      "id": "9d012243-9326-40e9-b851-204f5bf84576",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Edit Fields').item.json.Email }}",
+        "subject": "={{ $json.output[0].content[0].text.title }}",
+        "emailType": "text",
+        "message": "={{ $json.output[0].content[0].text.body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1184,
+        384
+      ],
+      "id": "538e5642-46d1-49eb-945a-d93028f8c2ff",
+      "name": "Send a message1",
+      "webhookId": "e0547ae6-7125-4519-a3fe-927bbdfa20ef"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Welcome Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Welcome Email": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4daddaf8-886c-49fe-97c8-4a647a0aaa71",
+  "meta": {
+    "instanceId": "2c4c872d0ac20197ae371b7188071696e523c9123fceae1f1f906f947f888f09"
+  },
+  "id": "GqsBOlvG9p2LrIN4",
+  "tags": []
+}

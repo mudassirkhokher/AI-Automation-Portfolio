@@ -1,0 +1,565 @@
+{
+  "name": "Community-First",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1568,
+        -736
+      ],
+      "id": "0f9c1da6-768b-445a-affa-5e3112cc025a",
+      "name": "WhatsApp Trigger",
+      "webhookId": "8e6d05d9-6916-4aa3-812f-aa7a98bf0d94",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "tAK3AZllANM6bumF",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "1129771760228620",
+        "recipientPhoneNumber": "+923203747125",
+        "textBody": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        464,
+        -576
+      ],
+      "id": "75d7feaa-b106-49e3-a1e5-355768e2077b",
+      "name": "Send message",
+      "webhookId": "bde1e2c5-9a9f-4151-8cad-dcfa8b94abaa",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "kq5nFgjDXDt7bQCE",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}\n\n{{ $json.content.parts[0].text }}",
+        "options": {
+          "systemMessage": "You are a helpful assistant"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        64,
+        -736
+      ],
+      "id": "944925f5-342b-4e6d-bf89-4d09538f993a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        64,
+        -464
+      ],
+      "id": "505a0afb-198c-43f9-8afb-2a5c60ae2b1a",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "KVQ9wZfuAjB6DsDR",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('WhatsApp Trigger').item.json.contacts[0].wa_id }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        -464
+      ],
+      "id": "ef917a6b-ca72-46b3-8600-015193ef5a04",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.messages[0].text.body }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "4e6af651-94fc-40e4-97f9-b2b919a24401"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "46d3e474-13bf-4042-b7c5-a38d94a4386a",
+                    "leftValue": "={{ $json.messages[0].audio.id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "audio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "94e96e6e-8c89-4383-b11e-c559914e45a2",
+                    "leftValue": "={{ $json.messages[0].image.id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "image"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -1344,
+        -752
+      ],
+      "id": "d6f3095e-0c1a-4162-b7bf-82e0d642d8de",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "resource": "media",
+        "operation": "mediaUrlGet",
+        "mediaGetId": "={{ $json.messages[0].audio.id }}"
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -848,
+        -672
+      ],
+      "id": "d4e026d8-496d-4011-9a88-7c83daf97e6c",
+      "name": "Download media",
+      "webhookId": "97fa274c-4109-4309-91f2-b6491f235514",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "kq5nFgjDXDt7bQCE",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "[\n  {\n    \"name\" : \"Authorization\",\n    \"value\" : \"EAAX6BYdaDhYBR5qkkHFPHvFZAYrZAYQViAFv1mfEGqjJqXF18nfnvkug7Gpn92tduCuAhT8IIzYXSyFIJL54Ck45rjNJ6kQN0FIuTMxBGFtC5IJZCbdICjVTPgQbO4vjJ4jtBzzhafEy6zQCz1qwyN7fYzVQzO2y5JyrVPSd7fLfljhO2SehooqBhbZAOfuiSvznOtKGwZAe6sT0YMSkMEjJqoThTcMCaMuz16mCrF5Qlkdsx10cd0ZAZCaxiwNZCQLtQCi3HSEwqc0Qo3lCzpDp\"\n  }\n]",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -624,
+        -672
+      ],
+      "id": "dd1edf0e-9b0b-4957-9016-46343b716afe",
+      "name": "HTTP Request",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "kq5nFgjDXDt7bQCE",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "74e154b8-bce5-40a0-8a1e-d3465151cde7",
+              "name": "text",
+              "value": "={{ $json.messages[0].text.body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -624,
+        -912
+      ],
+      "id": "58851f07-3909-442e-918b-c2d9ce4156d6",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        -672
+      ],
+      "id": "01a27abf-2bcd-4fc4-94a1-e8d285057b55",
+      "name": "Transcribe a recording",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "BegXQjsYPRTIUbrv",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "media",
+        "operation": "mediaUrlGet",
+        "mediaGetId": "={{ $json.messages[0].image.id }}"
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -912,
+        -464
+      ],
+      "id": "5a051f5a-ffb8-43b6-ae6b-1eacb5433fd3",
+      "name": "Download media1",
+      "webhookId": "b6b3d70b-b9a4-496d-8a82-22d5d9d36c43",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "kq5nFgjDXDt7bQCE",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "[\n  {\n    \"name\" : \"Authorization\",\n    \"value\" : \"EAAX6BYdaDhYBR5qkkHFPHvFZAYrZAYQViAFv1mfEGqjJqXF18nfnvkug7Gpn92tduCuAhT8IIzYXSyFIJL54Ck45rjNJ6kQN0FIuTMxBGFtC5IJZCbdICjVTPgQbO4vjJ4jtBzzhafEy6zQCz1qwyN7fYzVQzO2y5JyrVPSd7fLfljhO2SehooqBhbZAOfuiSvznOtKGwZAe6sT0YMSkMEjJqoThTcMCaMuz16mCrF5Qlkdsx10cd0ZAZCaxiwNZCQLtQCi3HSEwqc0Qo3lCzpDp\"\n  }\n]",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -688,
+        -464
+      ],
+      "id": "98d276b2-f500-482c-903b-26908f9e1a1e",
+      "name": "HTTP Request1",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "kq5nFgjDXDt7bQCE",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.0-flash-lite-001",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.0-flash-lite-001"
+        },
+        "text": "Analyze image properly and give answer precisely.",
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        -464
+      ],
+      "id": "40fc7d10-43eb-40c7-9084-213dbbe9c178",
+      "name": "Analyze an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "BegXQjsYPRTIUbrv",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -272,
+        -464
+      ],
+      "id": "009cb316-8311-4ce9-a020-14270d61b6e1",
+      "name": "Edit Fields1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download media",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download media1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download media": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Transcribe a recording",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a recording": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download media1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Analyze an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze an image": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "63c2dbe9-9545-4829-9fa2-e67d63693872",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9e58c2ae1f351cb1fa5828e5170ee45463a237042644c15bb6e9da1c1d399997"
+  },
+  "id": "kCEqI7wikYkJRN7x",
+  "tags": []
+}

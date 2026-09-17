@@ -1,0 +1,369 @@
+{
+  "name": "WhatsApp Real Estate Lead-Gen AI Agent – Lahore",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node_whatsapp_trigger",
+      "name": "WhatsApp Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [180, 340],
+      "notes": "Configure this webhook URL in your WhatsApp Business API (Meta for Developers) as the webhook endpoint. Set VERIFY_TOKEN in the query-param check below."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.entry[0].changes[0].value.messages[0].type }}",
+              "operation": "equals",
+              "value2": "text"
+            }
+          ]
+        }
+      },
+      "id": "node_filter_text",
+      "name": "Filter – Text Messages Only",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [400, 340]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "ok",
+        "options": {}
+      },
+      "id": "node_webhook_ack",
+      "name": "Webhook ACK (200 OK)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [400, 520],
+      "notes": "WhatsApp requires a fast 200 ACK. This handles non-text events silently."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract key fields from the WhatsApp Cloud API payload\nconst entry   = $input.first().json.body.entry[0];\nconst change  = entry.changes[0].value;\nconst message = change.messages[0];\nconst contact = change.contacts[0];\n\nreturn [{\n  json: {\n    sessionId:   message.from,           // phone number = unique session key\n    senderPhone: message.from,\n    senderName:  contact?.profile?.name ?? 'Customer',\n    messageId:   message.id,\n    messageText: message.text.body,\n    timestamp:   message.timestamp,\n    wabaId:      change.metadata.phone_number_id\n  }\n}];"
+      },
+      "id": "node_extract_fields",
+      "name": "Extract Message Fields",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [620, 340]
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId }}",
+        "contextWindowLength": 20
+      },
+      "id": "node_buffer_memory",
+      "name": "Conversation Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.2,
+      "position": [840, 480],
+      "notes": "Keeps last 20 messages in memory per phone-number session. For production, swap to the Postgres Chat Memory node and connect your PG credentials."
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {
+          "temperature": 0.4,
+          "maxTokens": 512
+        }
+      },
+      "id": "node_openai_model",
+      "name": "OpenAI GPT-4o",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [840, 340],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "agent": "conversationalAgent",
+        "promptType": "define",
+        "text": "={{ $json.messageText }}",
+        "systemMessage": "## ROLE\nYou are Aisha, a friendly and professional AI sales assistant for [BROKER_NAME] Real Estate, a trusted property broker based in Lahore, Pakistan. You communicate in the same language the customer uses — Urdu, English, or a natural mix (Roman Urdu is fine).\n\n## GOAL\nQualify leads by discovering three things:\n1. **Property interest** – buying, selling, or renting? What type (house, apartment, plot, commercial)? Which area of Lahore?\n2. **Budget** – get a confirmed PKR or USD range.\n3. **Timeline** – when do they want to close / move in?\n\n## CONVERSATION RULES\n- Be warm, concise, and never pushy.\n- Ask ONE question at a time.\n- If the customer asks about a specific property or area, give a brief helpful answer then steer back to qualification.\n- Do NOT invent prices or listings — say you'll have the broker share real-time options.\n- When you have confirmed budget AND timeline, output the following JSON block at the very end of your reply (after your conversational text) so the workflow can parse it:\n\n```json\n{\"qualified\": true, \"budget_pkr\": <number>, \"timeline_months\": <number>, \"interest\": \"<brief description>\", \"name\": \"<customer name>\", \"phone\": \"<phone>\"}\n```\n\n- If budget or timeline is still unknown, do NOT output the JSON block.\n- If the customer is clearly not interested, output: `{\"qualified\": false}`\n\n## BROKER DETAILS (fill in before going live)\n- Broker name: [BROKER_NAME]\n- Office: [OFFICE_ADDRESS], Lahore\n- Specialties: [DHA, Bahria Town, Gulberg, etc.]\n- WhatsApp for urgent queries: [BROKER_WHATSAPP]\n",
+        "options": {
+          "humanMessageTemplate": "{input}",
+          "returnIntermediateSteps": false
+        }
+      },
+      "id": "node_ai_agent",
+      "name": "AI Lead-Gen Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [1060, 340]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the agent's reply and detect the qualification JSON block\nconst agentOutput = $input.first().json.output ?? '';\n\n// Try to extract embedded JSON block\nconst jsonMatch = agentOutput.match(/```json\\s*([\\s\\S]*?)```/);\nlet qualData = null;\n\nif (jsonMatch) {\n  try { qualData = JSON.parse(jsonMatch[1].trim()); } catch(e) {}\n}\n\n// Clean reply = agent text without the JSON block\nconst cleanReply = agentOutput.replace(/```json[\\s\\S]*?```/, '').trim();\n\n// Determine routing\nconst isQualified = qualData?.qualified === true\n  && typeof qualData?.budget_pkr === 'number'\n  && typeof qualData?.timeline_months === 'number'\n  && qualData.timeline_months <= 3;\n\nreturn [{\n  json: {\n    ...($input.first().json),\n    agentReply:      cleanReply,\n    qualData:        qualData,\n    isQualified:     isQualified,\n    isColdLead:      qualData?.qualified === false\n  }\n}];"
+      },
+      "id": "node_parse_output",
+      "name": "Parse Agent Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1280, 340]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.isQualified }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node_qual_branch",
+      "name": "Qualified Lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1500, 340]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "event",
+        "operation": "create",
+        "calendarId": "primary",
+        "summary": "=Property Consultation – {{ $json.qualData.name ?? $json.senderName }}",
+        "description": "=Lead via WhatsApp\nPhone: {{ $json.senderPhone }}\nInterest: {{ $json.qualData.interest }}\nBudget: PKR {{ $json.qualData.budget_pkr?.toLocaleString() }}\nTimeline: {{ $json.qualData.timeline_months }} month(s)",
+        "start": "={{ $now.plus({days: 1}).set({hour: 11, minute: 0}).toISO() }}",
+        "end": "={{ $now.plus({days: 1}).set({hour: 11, minute: 30}).toISO() }}",
+        "additionalFields": {
+          "sendUpdates": "all",
+          "guestsCanModify": false
+        }
+      },
+      "id": "node_gcal_booking",
+      "name": "Book Google Calendar Slot",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [1720, 200],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_GCAL_CREDENTIAL_ID",
+          "name": "Google Calendar (Broker)"
+        }
+      },
+      "notes": "Creates a 30-min consultation slot for the next business day at 11 AM. Adjust the time logic as needed."
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $('Extract Message Fields').item.json.wabaId }}",
+        "recipientPhoneNumber": "={{ $('Extract Message Fields').item.json.senderPhone }}",
+        "textBody": "=Assalam o Alaikum {{ $('Extract Message Fields').item.json.senderName }}! 🎉\n\nGreat news — I've registered your property consultation with our broker. Here are your details:\n\n📅 *Date & Time:* {{ $json.start ?? 'Tomorrow 11:00 AM' }}\n🏠 *Interest:* {{ $('Parse Agent Output').item.json.qualData.interest }}\n💰 *Budget:* PKR {{ $('Parse Agent Output').item.json.qualData.budget_pkr?.toLocaleString() }}\n\nYou will receive a Google Calendar invite shortly. Our broker will call you to confirm. Looking forward to finding your dream property in Lahore! 🌟",
+        "additionalFields": {}
+      },
+      "id": "node_wa_confirm_client",
+      "name": "WhatsApp – Confirm to Client",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [1940, 120],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "REPLACE_WITH_YOUR_WHATSAPP_CREDENTIAL_ID",
+          "name": "WhatsApp Business API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $('Extract Message Fields').item.json.wabaId }}",
+        "recipientPhoneNumber": "=REPLACE_WITH_BROKER_WHATSAPP_NUMBER",
+        "textBody": "=🔔 *NEW QUALIFIED LEAD* 🔔\n\n👤 *Name:* {{ $('Extract Message Fields').item.json.senderName }}\n📞 *Phone:* {{ $('Extract Message Fields').item.json.senderPhone }}\n🏠 *Interest:* {{ $('Parse Agent Output').item.json.qualData.interest }}\n💰 *Budget:* PKR {{ $('Parse Agent Output').item.json.qualData.budget_pkr?.toLocaleString() }}\n⏳ *Timeline:* {{ $('Parse Agent Output').item.json.qualData.timeline_months }} month(s)\n📅 *Consultation booked for tomorrow 11:00 AM*\n\n_Lead generated by WhatsApp AI Agent_",
+        "additionalFields": {}
+      },
+      "id": "node_wa_notify_broker",
+      "name": "WhatsApp – Notify Broker",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [1940, 280],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "REPLACE_WITH_YOUR_WHATSAPP_CREDENTIAL_ID",
+          "name": "WhatsApp Business API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $('Extract Message Fields').item.json.wabaId }}",
+        "recipientPhoneNumber": "={{ $('Extract Message Fields').item.json.senderPhone }}",
+        "textBody": "={{ $('Parse Agent Output').item.json.agentReply }}",
+        "additionalFields": {}
+      },
+      "id": "node_wa_nurture_reply",
+      "name": "WhatsApp – Nurture Reply",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [1720, 500],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "REPLACE_WITH_YOUR_WHATSAPP_CREDENTIAL_ID",
+          "name": "WhatsApp Business API"
+        }
+      },
+      "notes": "Sends the agent's conversational reply back to the user while still gathering qualification info."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log nurture touch to console (replace with your CRM/Airtable/Sheet node if needed)\nconst phone  = $input.first().json.senderPhone;\nconst name   = $input.first().json.senderName;\nconst reply  = $input.first().json.agentReply;\nconst isCold = $input.first().json.isColdLead;\n\nconsole.log(`[NURTURE] ${name} (${phone}) | cold=${isCold} | reply=\"${reply.slice(0,80)}...\"`);\n\nreturn [{ json: { status: 'nurture_logged', phone, name, isCold } }];"
+      },
+      "id": "node_nurture_tag",
+      "name": "Tag as Nurture Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1940, 500],
+      "notes": "Replace this Code node with an Airtable, Google Sheets, or CRM node to persist nurture leads."
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "ok",
+        "options": {}
+      },
+      "id": "node_final_ack",
+      "name": "Final Webhook ACK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2160, 340]
+    }
+  ],
+  "connections": {
+    "WhatsApp Webhook Trigger": {
+      "main": [
+        [
+          { "node": "Filter – Text Messages Only", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Filter – Text Messages Only": {
+      "main": [
+        [
+          { "node": "Extract Message Fields", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Webhook ACK (200 OK)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Extract Message Fields": {
+      "main": [
+        [
+          { "node": "AI Lead-Gen Agent", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "AI Lead-Gen Agent": {
+      "main": [
+        [
+          { "node": "Parse Agent Output", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Parse Agent Output": {
+      "main": [
+        [
+          { "node": "Qualified Lead?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Qualified Lead?": {
+      "main": [
+        [
+          { "node": "Book Google Calendar Slot", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "WhatsApp – Nurture Reply", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Book Google Calendar Slot": {
+      "main": [
+        [
+          { "node": "WhatsApp – Confirm to Client", "type": "main", "index": 0 },
+          { "node": "WhatsApp – Notify Broker",    "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "WhatsApp – Confirm to Client": {
+      "main": [
+        [
+          { "node": "Final Webhook ACK", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "WhatsApp – Notify Broker": {
+      "main": [
+        [
+          { "node": "Final Webhook ACK", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "WhatsApp – Nurture Reply": {
+      "main": [
+        [
+          { "node": "Tag as Nurture Lead", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Tag as Nurture Lead": {
+      "main": [
+        [
+          { "node": "Final Webhook ACK", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "OpenAI GPT-4o": {
+      "ai_languageModel": [
+        [
+          { "node": "AI Lead-Gen Agent", "type": "ai_languageModel", "index": 0 }
+        ]
+      ]
+    },
+    "Conversation Buffer Memory": {
+      "ai_memory": [
+        [
+          { "node": "AI Lead-Gen Agent", "type": "ai_memory", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "real-estate" },
+    { "name": "whatsapp" },
+    { "name": "ai-agent" },
+    { "name": "lahore" }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2026-06-06T00:00:00.000Z",
+  "versionId": "1"
+}

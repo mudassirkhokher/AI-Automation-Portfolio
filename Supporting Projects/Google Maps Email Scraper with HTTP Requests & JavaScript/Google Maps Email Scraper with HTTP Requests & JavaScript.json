@@ -1,0 +1,695 @@
+{
+  "name": "Google Maps Email Scraper with HTTP Requests & JavaScript",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e56df029-f672-4a7b-8bfb-fddf1ef826cc",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        -1024,
+        240
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "4172d6a7-4f19-4fd6-9508-4475bb44872b",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        416,
+        240
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "id": "f6f51252-817c-49e5-9af2-ec575780d352",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "position": [
+        784,
+        368
+      ],
+      "webhookId": "19cc6ed4-4fe7-485b-b879-c679e4b3374d",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {},
+      "id": "6c9b9e9e-33f8-4e86-ae27-e02ca454a33c",
+      "name": "Wait1",
+      "type": "n8n-nodes-base.wait",
+      "position": [
+        608,
+        112
+      ],
+      "webhookId": "0fe34756-6e43-4603-8891-5747a9a6500a",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "emails",
+        "options": {}
+      },
+      "id": "a8ca3e86-b1e0-40dd-ab2b-cdfbe079ba7b",
+      "name": "Split Out",
+      "type": "n8n-nodes-base.splitOut",
+      "position": [
+        960,
+        112
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = items[0].json.data;\n\n// Method 1: Direct email regex\nconst emailRegex = /[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}/g;\nconst directEmails = html.match(emailRegex) || [];\n\n// Method 2: mailto: links\nconst mailtoRegex = /href=[\"']mailto:([^\"']+)[\"']/g;\nlet mailtoEmails = [];\nlet match;\nwhile ((match = mailtoRegex.exec(html)) !== null) {\n  mailtoEmails.push(match[1]);\n}\n\n// Method 3: data-cfemail (Cloudflare protected)\nconst cfRegex = /data-cfemail=\"([^\"]+)\"/g;\nlet cfEmails = [];\nwhile ((match = cfRegex.exec(html)) !== null) {\n  // Cloudflare encodes emails — we flag it as protected\n  cfEmails.push('[CF-protected email found]');\n}\n\n// Combine and deduplicate\nconst allEmails = [...new Set([...directEmails, ...mailtoEmails])];\n\nreturn [{\n  json: {\n    emails: allEmails.length > 0 ? allEmails : null,\n    cloudflare_protected: cfEmails.length > 0,\n    note: cfEmails.length > 0 ? 'This site uses Cloudflare email protection. Email not extractable from HTML.' : null\n  }\n}];"
+      },
+      "id": "5db1fc12-0607-457c-ab2a-f50de27fb7fe",
+      "name": "Extract Emails",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        960,
+        368
+      ],
+      "typeVersion": 2,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const raw = item.json.website;\n  const clean = raw ? raw.split('?')[0] : null;\n  return {\n    json: {\n      website: clean\n    }\n  };\n}).filter(item => item.json.website !== null);"
+      },
+      "id": "0eda6888-caa5-425e-a24c-91d99c098185",
+      "name": "Extract URLs",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        32,
+        240
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.website }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          }
+        }
+      },
+      "id": "0223cf60-b9ec-46dd-82c7-f554e11b7aa1",
+      "name": "Scrape Site",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        608,
+        368
+      ],
+      "typeVersion": 4.2,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "a6786c58-424a-409a-b87f-8a7592cb7944",
+              "operator": {
+                "type": "array",
+                "operation": "exists",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.emails }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1bb11868-3d90-4acb-baa5-8c9ba0e3933a",
+      "name": "Filter Out Empties",
+      "type": "n8n-nodes-base.filter",
+      "position": [
+        784,
+        112
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "bf0a5053-9660-457c-9581-964793bb6d7d",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              },
+              "leftValue": "={{ $json.emails }}",
+              "rightValue": "schema"
+            },
+            {
+              "id": "9110b9e0-12aa-45cc-bde0-9eda8c10970e",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              },
+              "leftValue": "={{ $json.emails }}",
+              "rightValue": "google"
+            },
+            {
+              "id": "fb9b6ed6-96a5-4560-ab10-b8a4b9a61a2b",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              },
+              "leftValue": "={{ $json.emails }}",
+              "rightValue": "gg"
+            },
+            {
+              "id": "10500c0b-cdbd-4816-aba3-df60d69845dc",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              },
+              "leftValue": "={{ $json.emails }}",
+              "rightValue": "gstatic"
+            },
+            {
+              "id": "d9bd0e42-a467-4f68-aa0c-6ff67d56530f",
+              "leftValue": "={{ $json.emails }}",
+              "rightValue": ".png",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": "={{ false }}",
+        "options": {}
+      },
+      "id": "5c86f4a3-fb62-4fc9-b9eb-9066c1c3b94c",
+      "name": "Filter Google URLs",
+      "type": "n8n-nodes-base.filter",
+      "position": [
+        1168,
+        112
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "94c1a5f8-8acc-4332-a077-cd9eba754acb",
+      "name": "Remove Duplicates (2)",
+      "type": "n8n-nodes-base.removeDuplicates",
+      "position": [
+        1376,
+        112
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1PARPql1xAtuhEj6rbyXXf5YESZM5BpxrRSdk_N6Bj2c",
+          "mode": "list",
+          "cachedResultName": " Scrape WITHOUT Paying for APIs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1PARPql1xAtuhEj6rbyXXf5YESZM5BpxrRSdk_N6Bj2c/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1PARPql1xAtuhEj6rbyXXf5YESZM5BpxrRSdk_N6Bj2c/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Emails": "={{ $json.emails }}"
+          },
+          "matchingColumns": [
+            "emails"
+          ],
+          "schema": [
+            {
+              "id": "Emails",
+              "displayName": "Emails",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "useAppend": true
+        }
+      },
+      "id": "e58e91e2-10fa-4dc5-9326-8ff8a608179c",
+      "name": "Add to Sheet (or whatever you want!)",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [
+        1984,
+        112
+      ],
+      "typeVersion": 4.5,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ykChwzvQwee6urSJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "google_maps",
+        "q": "ManPower Supplier India",
+        "additionalFields": {
+          "start": 0
+        },
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-serpapi.serpApi",
+      "typeVersion": 1,
+      "position": [
+        -576,
+        64
+      ],
+      "id": "43ef99d8-b62e-40df-bc51-ac2b567f02f9",
+      "name": "Google_maps search",
+      "credentials": {
+        "serpApi": {
+          "id": "8uacqeTzm37qniNK",
+          "name": "SerpApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const allResults = items.flatMap(item => item.json.local_results || []);\n\nconst seen = new Set();\n\nreturn allResults\n  .filter(result => {\n    if (!result.website || seen.has(result.website)) {\n      return false;\n    }\n    seen.add(result.website);\n    return true;\n  })\n  .map(result => ({\n    json: {\n      name: result.title || null,\n      website: result.website || null,\n      phone: result.phone || null,\n      address: result.address || null,\n      rating: result.rating || null,\n      country: result.country || null,\n    }\n  }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        240
+      ],
+      "id": "850ac4e0-98dc-413f-b47d-b1d409b07f9a",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "google_maps",
+        "q": "ManPower Supplier India",
+        "additionalFields": {
+          "start": 20
+        },
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-serpapi.serpApi",
+      "typeVersion": 1,
+      "position": [
+        -576,
+        240
+      ],
+      "id": "9652d080-a52f-4cf1-89a6-af37763b77df",
+      "name": "Google_maps search1",
+      "credentials": {
+        "serpApi": {
+          "id": "8uacqeTzm37qniNK",
+          "name": "SerpApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "google_maps",
+        "q": "ManPower Supplier India",
+        "additionalFields": {
+          "start": 40
+        },
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-serpapi.serpApi",
+      "typeVersion": 1,
+      "position": [
+        -576,
+        432
+      ],
+      "id": "41b74ee5-76eb-4693-93d4-f361678451ce",
+      "name": "Google_maps search2",
+      "credentials": {
+        "serpApi": {
+          "id": "8uacqeTzm37qniNK",
+          "name": "SerpApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -352,
+        224
+      ],
+      "id": "7f7bd04b-cdaf-4946-b825-b574b7edacf7",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1PARPql1xAtuhEj6rbyXXf5YESZM5BpxrRSdk_N6Bj2c",
+          "mode": "list",
+          "cachedResultName": " Scrape WITHOUT Paying for APIs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1PARPql1xAtuhEj6rbyXXf5YESZM5BpxrRSdk_N6Bj2c/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1PARPql1xAtuhEj6rbyXXf5YESZM5BpxrRSdk_N6Bj2c/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1584,
+        112
+      ],
+      "id": "bcb32989-85a5-4b0b-b8ce-2dda54d5f5f3",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ykChwzvQwee6urSJ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get existing emails from Google Sheet\nconst existingRows = $('Google Sheets').all();\nconst existingEmails = new Set(\n  existingRows\n    .map(row => row.json.email || row.json.Email || '')\n    .filter(e => e)\n    .map(e => e.toLowerCase().trim())\n);\n\n// Filter current batch — keep only emails not already in sheet\nconst newItems = items.filter(item => {\n  const email = item.json.emails;\n  if (!email) return false;\n  return !existingEmails.has(email.toLowerCase().trim());\n});\n\nreturn newItems.length > 0 ? newItems : [{ json: { skipped: 'all duplicates' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        112
+      ],
+      "id": "3ce33e0b-6649-4294-bbb4-c3df6b767cb9",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "maxItems": 5
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        240,
+        240
+      ],
+      "id": "c93e80d3-70c5-4f99-bf51-2a047729fb91",
+      "name": "Limit"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Extract Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Filter Out Empties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Filter Google URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape Site": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract URLs": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Emails": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Scrape Site",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Google URLs": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates (2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Out Empties": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates (2)": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Google_maps search1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google_maps search2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google_maps search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google_maps search": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Extract URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google_maps search1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Google_maps search2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Add to Sheet (or whatever you want!)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "9c60b0b3-46d3-436e-b0d4-a6c0b1673ce5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2c4c872d0ac20197ae371b7188071696e523c9123fceae1f1f906f947f888f09"
+  },
+  "id": "BrROvrgEnhFrU3jh",
+  "tags": []
+}

@@ -1,0 +1,859 @@
+{
+  "name": "Classify emails and send replies with GPT-4o and gotoHuman for supervision",
+  "nodes": [
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "id": "2b131412-e9f1-4a8b-a268-0c9b21443aa7",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        576,
+        1472
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "openAiApi": {
+          "id": "kDl1bl3qvOjcwk27",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "id": "db840ba6-5bf2-4355-af2c-35d6a9b2059a",
+      "name": "OpenAI Chat Model2",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        1696,
+        1312
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "openAiApi": {
+          "id": "kDl1bl3qvOjcwk27",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "id": "54e8ca88-61d2-4ecf-97be-5bde43f92adf",
+      "name": "New Email",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "position": [
+        448,
+        1232
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Ap9gBa5zzlje8DzA",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=From: {{ $json.from.text }}\nTo: {{ $json.to.text }}\nSubject: {{ $json.subject }}\nBody:\n{{ $json.text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a helpful email assistant analyzing the email passed by the user.\nPlease determine whether we need to reply and if you would flag it as important. Also classify the email into one of the following categories:\n- Customer Support\n- Partnership Inquiry\n- Sales opportunity\n- Transactional notification\n- Promotion\n- Spam\n- Personal"
+        }
+      },
+      "id": "138f84f1-1e44-4a2f-b2cf-574f196fabb1",
+      "name": "AI Classifier",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        656,
+        1232
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=From: {{ $('New Email').item.json.from.text }}\nTo: {{ $('New Email').item.json.to.text }}\nSubject: {{ $('New Email').item.json.subject }}\nBody:\n{{ $('New Email').item.json.text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "={{ $json.prompt }}"
+        }
+      },
+      "id": "f96111be-c199-4e19-84d7-15062c5bbcae",
+      "name": "AI Email Writer",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        1744,
+        1136
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {},
+      "id": "4aa78fde-0378-43ac-8de4-5eb16d4654db",
+      "name": "No reply",
+      "type": "n8n-nodes-base.noOp",
+      "position": [
+        2960,
+        1040
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d1b93765-fd43-4c01-aff9-f96170b77cd9",
+              "name": "prompt",
+              "type": "string",
+              "value": "You are a helpful email assistant. Please draft a reply to the email passed by the user. Match the writing style of the received email. If you cannot answer questions or draft a complete reply, incl. placeholders. A user will review your draft after this and can fill in more info. Incl. the body of the email only, we are responding within the thread."
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "fabc6e2c-338c-4fd5-892e-a9d41eb2fbf7",
+      "name": "Set Prompt",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1536,
+        1136
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f10b4f0b-3756-48e9-a7f6-51299ad48427",
+              "name": "prompt",
+              "type": "string",
+              "value": "={{ $json.messages[0].content || $('Set Prompt').item.json.prompt }}"
+            },
+            {
+              "id": "9a7c60fe-a782-4660-97fe-a7fc851cbb45",
+              "name": "reviewToUpdate",
+              "type": "string",
+              "value": "={{ $json.reviewId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "052cbe31-443a-4b3a-8429-fb775703eee0",
+      "name": "Set (edited) prompt",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        2960,
+        1728
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"textEmailDraft\": \"Hello Jack...\"\n}"
+      },
+      "id": "333ddcdf-c633-4824-9096-d1d47a564eb9",
+      "name": "Structured Output",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "position": [
+        1904,
+        1312
+      ],
+      "typeVersion": 1.3
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"classifiedAs\": \"support\",\n    \"needsReply\": true,\n    \"important\": false\n}"
+      },
+      "id": "6b82f29b-240a-42ba-a326-cfe92660e621",
+      "name": "Structured Output1",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "position": [
+        848,
+        1472
+      ],
+      "typeVersion": 1.3
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "b5af0410-a10b-4b7c-a4e9-33f351a9c988",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "leftValue": "={{ $json.output.needsReply }}",
+                    "rightValue": ""
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Needs reply"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "ace11ff1-0722-475a-ba61-706bc21f9e8f",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "leftValue": "={{ !$json.output.needsReply && $json.output.important }}",
+                    "rightValue": ""
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Needs no reply but important"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "d36d5ec4-90a8-4a70-bedd-4a3534dc0308",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "leftValue": "={{ !$json.output.needsReply && !$json.output.important }}",
+                    "rightValue": ""
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Don't bother"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3d2ca961-b126-4b45-a87c-675128886bbb",
+      "name": "Needs Human Attention?",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        1008,
+        1216
+      ],
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {},
+      "id": "b8d8ef38-2c99-418b-94bd-9fcd825a3a3a",
+      "name": "Not important",
+      "type": "n8n-nodes-base.noOp",
+      "position": [
+        1248,
+        1408
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "agentID": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "reviewTemplateID": {
+          "__rl": true,
+          "value": "cU5NnEdAwAGNqAsCWXFO",
+          "mode": "list",
+          "cachedResultName": "Email Smart Reply (cU5NnEdAwAGNqAsCWXFO)"
+        },
+        "fields": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email": "={{ $('New Email').item.json.textAsHtml }}",
+            "sender": "={{ $('New Email').item.json.from.text }}",
+            "emailDraft": "={{ $json.output?.textEmailDraft ? {ai: {prompt: $('Set Prompt').item.json.prompt}, content: $json.output?.textEmailDraft} : \"No reply needed - FYI only\" }}",
+            "classification": "={{ $('AI Classifier').item.json.output.classifiedAs }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "type": "string",
+              "id": "sender",
+              "displayName": "sender (textShort)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "type": "string",
+              "id": "email",
+              "displayName": "email (emailHtml)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "type": "string",
+              "id": "classification",
+              "displayName": "classification (textShort)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "type": "string",
+              "id": "emailDraft",
+              "displayName": "emailDraft (text)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "additionalFields": {
+          "updateForReviewId": "={{ $('Set (edited) prompt').isExecuted ? $('Set (edited) prompt').item.json.reviewToUpdate : null }}"
+        }
+      },
+      "id": "8afb91b3-70ca-4d20-8dc0-d8e82d47b16b",
+      "name": "gotoHuman: Human review",
+      "type": "@gotohuman/n8n-nodes-gotohuman.gotoHuman",
+      "position": [
+        2384,
+        1216
+      ],
+      "webhookId": "f445153e-594c-4e61-9f32-b6b4e87c1411",
+      "typeVersion": 1,
+      "credentials": {
+        "gotoHumanApi": {
+          "id": "kz70gRYFcuMT69N6",
+          "name": "gotoHuman account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "c25eb32d-e664-420c-8574-946f9e1c10cf",
+                    "operator": {
+                      "name": "filter.operator.equals",
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.response }}",
+                    "rightValue": "rejected"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Rejected"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "a55f8641-84eb-4043-a573-9958b9606571",
+                    "operator": {
+                      "name": "filter.operator.equals",
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.response }}",
+                    "rightValue": "approved"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Approved"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "feaea8d7-d127-4a03-a87d-2269551ab775",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.type }}",
+                    "rightValue": "chat"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Retry"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d7496fcc-e8d5-45fd-94af-0190be114308",
+      "name": "Human response",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        2688,
+        1200
+      ],
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $('New Email').item.json.id }}",
+        "emailType": "text",
+        "message": "={{ $json.responseValues.emailDraft.value }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "c1b741a5-4bb5-4570-acae-c4d6d0aef7f4",
+      "name": "Reply to thread",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        3344,
+        1216
+      ],
+      "webhookId": "f5644cf1-21dd-446e-91b1-06a6958cdc27",
+      "typeVersion": 2.1,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "Ap9gBa5zzlje8DzA",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "![Source example](https://cdn.prod.website-files.com/6605a2979ff17b2cd1939cd4/6877ff9cd93f480ff6eb4def_677c04b5cd6a77eb434526bf9c0eaaca_gotoHuman%20full%20logo.svg)",
+        "height": 272,
+        "color": 7
+      },
+      "id": "2d0ee5a2-b7f6-4e83-9640-4005526c451b",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2320,
+        1136
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Classify Email\nWe ask AI to classify the received email into one of the categories defined in the prompt. It also determines whether a reply is needed and it is deemed important.",
+        "height": 640,
+        "width": 848,
+        "color": 7
+      },
+      "id": "b24bd496-feed-4825-8de2-0c04252ffa9e",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        368,
+        992
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Draft Email Response\nIf it was determined that a reply is required, we ask AI to draft a response. It might incl. placeholders for a human to replace during review.",
+        "height": 624,
+        "width": 720,
+        "color": 7
+      },
+      "id": "cb439e6b-dbe7-4e8a-9830-ea95293319c1",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1408,
+        1008
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Human Review\nAsk a human to review the received email and approve any AI-drafted response via gotoHuman.\nDrafts can be manually edited or retried in gotoHuman (Retries loop back to the AI email writer node).",
+        "height": 624,
+        "width": 656,
+        "color": 7
+      },
+      "id": "83096ad5-1749-4863-85c7-05148bc8c583",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2240,
+        1008
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Human asked for Retry\nIn gotoHuman the reviewer clicked retry or edited the prompt to iterate on the LLM output.",
+        "height": 336,
+        "width": 896,
+        "color": 7
+      },
+      "id": "aeeda5cc-c5ff-4bfe-ac35-7730efca93bb",
+      "name": "Sticky Note4",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2240,
+        1664
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Send approved Reply\nSend the approved response as a reply to the email thread",
+        "height": 432,
+        "width": 560,
+        "color": 7
+      },
+      "id": "c20abf9e-385a-4263-9205-8739a95093be",
+      "name": "Sticky Note5",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3136,
+        992
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "gotoHuman - Reviewing\n![Pic](https://cdn.prod.website-files.com/6605a2979ff17b2cd1939cd4/689b5e250227be98ca4d11e2_gth-review.JPG)",
+        "height": 816,
+        "width": 784
+      },
+      "id": "e5994c92-1179-421d-957a-ecc413e41e8d",
+      "name": "Sticky Note6",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2176,
+        160
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "gotoHuman - Retrying with AI\n![Pic](https://cdn.prod.website-files.com/6605a2979ff17b2cd1939cd4/689b5eb249cfe598f6ef0305_gth-chat.JPG)",
+        "height": 352,
+        "width": 1072
+      },
+      "id": "890831e1-89c0-4978-9b1f-6bdd00fceea4",
+      "name": "Sticky Note7",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2128,
+        2016
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## AI Email Assistant 🤖📧\n### Classifies, Drafts and Sends Human-Approved Reply\n\nThis shows an AI-based email assistant that reads each new incoming email, drafts a reply and sends it after human approval in gotoHuman.\n\n### ⚠️ How to set up\n[ ] In n8n, install the gotoHuman node **before** importing this template or some settings will be missing (Just add the node to a blank canvas before importing)\n\n[ ] Create gotoHuman account, copy API key\n\n[ ] In gotoHuman, select and create the pre-built review template **Email agent** or import the ID: `v81wzxwYoFYvWpmuIBgX`\n[ ] In the gotoHuman node, set up the credentials using your API key and select the review template \"Email Smart Reply\" from the list (This is the one you just imported)\n[ ] Connect Gmail and OpenAI account\n\n### Requirements\n- gotoHuman account for human supervision\n- OpenAI account for classification and email draft\n- Gmail for emails",
+        "height": 720,
+        "width": 688
+      },
+      "id": "3ecfaedc-0b01-47f4-b6d1-bbde0426cc23",
+      "name": "Sticky Note8",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        368,
+        240
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "agentID": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "reviewTemplateID": {
+          "__rl": true,
+          "value": "cU5NnEdAwAGNqAsCWXFO",
+          "mode": "list",
+          "cachedResultName": "Email Smart Reply (cU5NnEdAwAGNqAsCWXFO)"
+        },
+        "additionalFields": {}
+      },
+      "type": "@gotohuman/n8n-nodes-gotohuman.gotoHuman",
+      "typeVersion": 2,
+      "position": [
+        3984,
+        1296
+      ],
+      "id": "aa7defc5-d287-4cf8-90cb-bc3014bdbd91",
+      "name": "Send review request and wait for response",
+      "webhookId": "8ae7bd24-1ce0-4171-bb23-31f433af13a9",
+      "credentials": {
+        "gotoHumanApi": {
+          "id": "kz70gRYFcuMT69N6",
+          "name": "gotoHuman account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "New Email": {
+      "main": [
+        [
+          {
+            "node": "AI Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Prompt": {
+      "main": [
+        [
+          {
+            "node": "AI Email Writer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Classifier": {
+      "main": [
+        [
+          {
+            "node": "Needs Human Attention?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Human response": {
+      "main": [
+        [
+          {
+            "node": "No reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply to thread",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set (edited) prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Email Writer": {
+      "main": [
+        [
+          {
+            "node": "gotoHuman: Human review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Email Writer",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Email Writer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Classifier",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set (edited) prompt": {
+      "main": [
+        [
+          {
+            "node": "AI Email Writer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Human Attention?": {
+      "main": [
+        [
+          {
+            "node": "Set Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "gotoHuman: Human review",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Not important",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "gotoHuman: Human review": {
+      "main": [
+        [
+          {
+            "node": "Human response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "205c064e-b4b3-47d6-820f-1be6454d553f",
+  "meta": {
+    "templateId": "7301",
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2c4c872d0ac20197ae371b7188071696e523c9123fceae1f1f906f947f888f09"
+  },
+  "id": "duZAsxzPYbmVhJVp",
+  "tags": []
+}

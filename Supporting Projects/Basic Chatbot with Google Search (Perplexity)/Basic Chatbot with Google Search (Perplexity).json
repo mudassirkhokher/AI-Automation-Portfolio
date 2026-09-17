@@ -1,0 +1,153 @@
+{
+  "name": "Basic Chatbot with Google Search (Perplexity)",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -800,
+        -320
+      ],
+      "id": "26f4ae16-b01a-4cd6-8fea-78b4fa7b437a",
+      "name": "When chat message received",
+      "webhookId": "e35b94ff-2ce4-43cf-aa17-ceb5b8c5ed3a"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a helpful assistant.\n#Tool:\n- Serp: Always use this tool first to fetch real-time data before answering any question."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -592,
+        -320
+      ],
+      "id": "d2d823cc-28f8-4656-9345-0b5c4fd4bf43",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -736,
+        48
+      ],
+      "id": "907c923d-020e-47a4-b37e-aada4861d40d",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -528,
+        48
+      ],
+      "id": "8a6d3471-76d6-49ab-8bdb-cbc9773d7ecf",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "q": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Search_Query__q_', ``, 'string') }}",
+        "location": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Location__location_', ``, 'string') }}",
+        "additionalFields": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-serpapi.serpApiTool",
+      "typeVersion": 1,
+      "position": [
+        -336,
+        48
+      ],
+      "id": "bb8eb465-9d0b-4e46-821f-25cac34a432a",
+      "name": "Serp",
+      "credentials": {
+        "serpApi": {
+          "id": "GQuxNFGFTrBa5yPi",
+          "name": "SerpApi account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Serp": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "62536194-b241-41a7-b4f7-e80b0403dcf6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8f500cb1116450dd4fe649fa720f027553d2ba5fa35c2b3be047238dfa8be6cc"
+  },
+  "id": "agHCceNWcIYAR6n1",
+  "tags": []
+}

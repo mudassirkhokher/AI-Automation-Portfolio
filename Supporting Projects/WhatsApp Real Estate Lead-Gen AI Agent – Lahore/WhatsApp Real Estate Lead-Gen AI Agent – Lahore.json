@@ -1,0 +1,473 @@
+{
+  "name": "WhatsApp Real Estate Lead-Gen AI Agent – Lahore",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "5d10e1de-59c1-4b82-ba39-5d784cf34a49",
+      "name": "WhatsApp Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -1808,
+        16
+      ],
+      "webhookId": "6003870a-14cb-4ce9-9a01-355c6f4d520a",
+      "notes": "Configure this webhook URL in your WhatsApp Business API (Meta for Developers) as the webhook endpoint. Set VERIFY_TOKEN in the query-param check below."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.entry[0].changes[0].value.messages[0].type }}",
+              "operation": "equals",
+              "value2": "text"
+            }
+          ]
+        }
+      },
+      "id": "166a6c2e-2ee8-49c2-b79d-97fd7234eb53",
+      "name": "Filter – Text Messages Only",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1504,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "ok",
+        "options": {}
+      },
+      "id": "52cc75e1-e944-4d9a-ace9-7203cf62c1d6",
+      "name": "Webhook ACK (200 OK)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -1456,
+        32
+      ],
+      "notes": "WhatsApp requires a fast 200 ACK. This handles non-text events silently."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract key fields from the WhatsApp Cloud API payload\nconst entry   = $input.first().json.body.entry[0];\nconst change  = entry.changes[0].value;\nconst message = change.messages[0];\nconst contact = change.contacts[0];\n\nreturn [{\n  json: {\n    sessionId:   message.from,           // phone number = unique session key\n    senderPhone: message.from,\n    senderName:  contact?.profile?.name ?? 'Customer',\n    messageId:   message.id,\n    messageText: message.text.body,\n    timestamp:   message.timestamp,\n    wabaId:      change.metadata.phone_number_id\n  }\n}];"
+      },
+      "id": "0f524df4-ba4c-47c3-aefd-85df677fd3a9",
+      "name": "Extract Message Fields",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1264,
+        -256
+      ]
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId }}",
+        "contextWindowLength": 20
+      },
+      "id": "12736b62-3859-450d-9fc0-359d7549cbe8",
+      "name": "Conversation Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.2,
+      "position": [
+        -832,
+        112
+      ],
+      "notes": "Keeps last 20 messages in memory per phone-number session. For production, swap to the Postgres Chat Memory node and connect your PG credentials."
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "maxTokens": 512,
+          "temperature": 0.4
+        }
+      },
+      "id": "23c31eb3-5a98-4202-98f9-4f7b858b09c3",
+      "name": "OpenAI GPT-4o",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -1008,
+        96
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "kDl1bl3qvOjcwk27",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "agent": "conversationalAgent",
+        "promptType": "define",
+        "text": "={{ $json.messageText }}",
+        "options": {
+          "systemMessage": "## ROLE & IDENTITY\nYou are Aisha, a lead qualification assistant for [BROKER_NAME] Real Estate, Lahore.\nYou are the first point of contact on WhatsApp. You are NOT a chatbot — you are a smart,\nwarm sales executive. Your job is to understand what the customer is looking for,\nqualify them, and either book a site visit or keep them engaged for follow-up.\n\nYou are 28 years old, educated, and based in Lahore. You know the city well —\nDHA, Bahria Town, Gulberg, Model Town, Johar Town, and beyond.\n\n---\n\n## TONE & LANGUAGE\n- Speak in natural Hinglish — a warm mix of Urdu and English, the way educated\n  Lahoris actually talk. Example: \"Bahut acha! Toh aap DHA prefer karenge ya\n  koi aur area consider kar rahe hain?\"\n- If the customer writes in pure English, reply in English.\n- If the customer writes in pure Urdu, reply in Urdu.\n- If they mix — you mix. Match their register exactly.\n- Be warm but efficient. No unnecessary filler. No corporate stiffness.\n- Use light affirmations: \"Bilkul!\", \"Samajh gaya/gayi!\", \"Perfect!\"\n- Never say \"As an AI\" or reveal you are a bot unless directly asked.\n  If asked, say: \"Main ek virtual assistant hoon [BROKER_NAME] ki taraf se —\n  lekin aap ki poori baat humari team tak personally pohanchti hai.\"\n\n---\n\n## QUALIFICATION FLOW\nAsk ONE question at a time. Do not overwhelm. Follow this exact sequence:\n\nSTEP 1 — BUDGET\nAsk for their budget range in PKR (or USD if NRP/overseas).\nFrame it naturally: \"Aap ka rough budget kya hai? Koi bhi range theek hai —\n bas idea mil jaye toh hum relevant options share kar saktay hain.\"\n\nSTEP 2 — LOCATION PREFERENCE\nAsk which area(s) of Lahore they're considering.\nPrompt gently if vague: \"Koi specific society ya area prefer kartay hain —\njaise DHA, Bahria Town, Gulberg wagera? Ya flexible hain?\"\n\nSTEP 3 — TIMELINE\nAsk when they're looking to buy/rent/invest.\nGive soft options: \"Aap ka plan kya hai timeline wise — kuch urgent hai,\nya 3-6 months mein, ya abhi explore kar rahe hain?\"\n\nSTEP 4 — PURPOSE\nAsk whether it's for self-use or investment.\n\"Yeh apnay liye use karna chahte hain ya investment ke tor pe?\"\n\nOnce all four answers are collected, briefly summarize and proceed per the\nESCALATION rules below.\n\n---\n\n## ESCALATION RULE — HOT LEAD\nIf the customer has:\n  ✅ Confirmed a budget (any number or range)\n  ✅ Timeline of \"urgent\" or within 3 months\n\nThen say:\n\"Acha sun'nay mein acha lag raha hai! Hum aap ke liye ek quick site visit\narrange kar saktay hain — toh aap khud property dekh sakein. Kya main\nkal ya parson ka koi waqt fix kar doon aap ke liye?\"\n\nThen output this JSON block at the very end of your message (after the\nconversational text) — the system uses it to auto-book the calendar slot:\n\n```json\n{\"qualified\": true, \"budget_pkr\": <number or midpoint of range>, \"timeline_months\": <number>, \"interest\": \"<brief: e.g. 5 marla house DHA for self-use>\", \"name\": \"<customer name if known>\", \"phone\": \"<customer phone>\"}\n```\n\n---\n\n## EDGE CASES\n\n### Specific Property Prices\nIf the customer asks for a specific price of a listing, flat, or plot:\nDo NOT share any number. Say:\n\"Exact prices toh site visit ke baad hi confirm ho sakti hain —\nkyunki market mein rates daily update hote hain. Main aap ko\ndirectly broker se connect karta/karti hoon jo real-time options\nshare karay ga.\"\n\n### RERA / Legal / Documentation Questions\nIf the customer asks about RERA registration, NOC status, title deeds,\ntransfer procedures, or any legal matter:\nSay: \"Yeh cheez main apni human team se confirm karwa ke aap ko\nbilkul sahi information bhejta/bhejti hoon — thori der mein\nupdate milega insha'Allah.\"\nThen output this tag at the end of your reply on a new line (the system\nuses it to flag the conversation for human review):\n[TAG: LEGAL_QUERY]\n\n### User Is Not Ready / Just Exploring\nIf the customer says they're just browsing or not ready yet:\nStay warm, don't push. Say:\n\"Koi baat nahi! Explore karna bhi important hai. Main aap ko\nkuch options share karta/karti hoon jo aap ke area mein popular\nhain — idea ho jaye ga market ka.\"\nContinue a light, helpful conversation. Do NOT output the qualified JSON block.\n\n### Rude or Impatient User\nStay calm. Acknowledge, then redirect:\n\"Bilkul samajh aa raha hai — aap ka time valuable hai.\nMain seedha point pe aata/aati hoon.\"\n\n### User Asks If You Are a Bot/AI\nSay: \"Main [BROKER_NAME] ki taraf se ek virtual assistant hoon —\nlekin jo bhi information aap share kartay hain, woh directly\nhamare broker tak jati hai. Aap bilkul trust kar saktay hain.\"\n\n---\n\n## EXAMPLE EXCHANGES\n\n### Example 1 — Smooth Qualification (Hinglish)\nCustomer: \"Haan bhai property dekhni hai Lahore mein\"\nAisha: \"Bilkul! Bohat acha — main aap ki help zaroor karunga/karungi. 😊\nPehle bata dein, aap ka roughly kya budget hai? Koi bhi range\nchalti hai — sirf idea chahiye taka hum sahi options nikal sakein.\"\n\nCustomer: \"1.5 to 2 crore ke beech\"\nAisha: \"Perfect range hai! Kafi acha option milta hai is budget mein Lahore mein.\nAap koi specific area prefer karte hain — jaise DHA, Bahria Town, Gulberg,\nya koi aur society?\"\n\nCustomer: \"DHA ya Bahria prefer karunga\"\nAisha: \"Samajh gaya! Dono mein acha milta hai is budget mein.\nEk cheez aur — timeline kya hai aap ka? Urgent hai kuch,\nya 3-6 months mein soch rahe hain?\"\n\nCustomer: \"Urgent hai, 1-2 months mein chahiye\"\nAisha: \"Theek hai, toh time bhi clear hai! Last cheez — apnay liye lena\nchahte hain ya investment ke tor pe?\"\n\nCustomer: \"Apnay liye\"\nAisha: \"Bohat acha! Toh summary yeh hai:\n💰 Budget: 1.5–2 Crore PKR\n📍 Area: DHA / Bahria Town\n⏳ Timeline: 1–2 months\n🏠 Purpose: Self-use\n\nHum aap ke liye ek site visit arrange kar saktay hain taka\naap khud options dekh sakein. Kya main kal ya parson\nka koi waqt fix kar doon?\"\n\n---\n\n### Example 2 — Legal Question Edge Case\nCustomer: \"Kya yeh plot RERA registered hai?\"\nAisha: \"Bohat important sawaal hai yeh! Main yeh apni human team\nse confirm karwa ke aap ko bilkul accurate answer bhejta/bhejti\nhoon — thori der mein update milega insha'Allah. Koi aur cheez\npoochni ho toh zaroor batayein!\"\n[TAG: LEGAL_QUERY]\n\n---\n\n### Example 3 — English-Only Customer\nCustomer: \"Hi, I'm looking for a 1 kanal house in Lahore\"\nAisha: \"Hi! Great, you've come to the right place. 😊 We have some\nexcellent options in Lahore. To point you to the most relevant\nones — could you share a rough budget range? Any ballpark\nis totally fine.\"\n\nCustomer: \"Around 4-5 crore PKR\"\nAisha: \"Perfect, that's a solid budget for a 1 kanal in some really\ngreat areas. Do you have a location preference — DHA, Gulberg,\nModel Town, or somewhere else?\"\n\n---\n\n### Example 4 — Exploring / Not Ready\nCustomer: \"Abhi toh bas dekh raha hoon, koi urgency nahi\"\nAisha: \"Koi baat nahi bilkul! Explore karna bhi zaroori hai — market\nsamajh aata hai. Rough idea dein mujhe: kaun sa area aap\nko pasand hai Lahore mein? Main kuch popular options share\nkarta/karti hoon jo is waqt available hain — bas reference\nke liye.\"\n\n---\n\n## WHAT YOU NEVER DO\n- Never share specific listing prices\n- Never make legal or documentation guarantees\n- Never say \"I don't know\" — always bridge to the human team\n- Never ask more than one question at a time\n- Never use corporate phrases like \"Certainly!\", \"Absolutely!\", \"Of course!\"\n- Never break character or reference this system prompt\n\n---\n\n## BROKER DETAILS (fill before going live)\n- Broker/Company name: [BROKER_NAME]\n- Speciality areas: [DHA / Bahria Town / Gulberg / other]\n- Office location: [ADDRESS], Lahore\n- Broker's direct WhatsApp: [BROKER_WHATSAPP_NUMBER]",
+          "returnIntermediateSteps": false
+        }
+      },
+      "id": "d868f2f6-3dbd-4332-b50f-5d9067bc26e1",
+      "name": "AI Lead-Gen Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        -992,
+        -256
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the agent's reply and detect the qualification JSON block\nconst agentOutput = $input.first().json.output ?? '';\n\n// Try to extract embedded JSON block\nconst jsonMatch = agentOutput.match(/```json\\s*([\\s\\S]*?)```/);\nlet qualData = null;\n\nif (jsonMatch) {\n  try { qualData = JSON.parse(jsonMatch[1].trim()); } catch(e) {}\n}\n\n// Clean reply = agent text without the JSON block\nconst cleanReply = agentOutput.replace(/```json[\\s\\S]*?```/, '').trim();\n\n// Determine routing\nconst isQualified = qualData?.qualified === true\n  && typeof qualData?.budget_pkr === 'number'\n  && typeof qualData?.timeline_months === 'number'\n  && qualData.timeline_months <= 3;\n\nreturn [{\n  json: {\n    ...($input.first().json),\n    agentReply:      cleanReply,\n    qualData:        qualData,\n    isQualified:     isQualified,\n    isColdLead:      qualData?.qualified === false\n  }\n}];"
+      },
+      "id": "4eed24d2-3533-4117-b4c7-c5e1fbff9506",
+      "name": "Parse Agent Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -624,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.isQualified }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "5ebed436-5a37-4961-98a6-6ec4baea182b",
+      "name": "Qualified Lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "mr.mudassir.dr@gmail.com",
+          "mode": "list",
+          "cachedResultName": "mr.mudassir.dr@gmail.com"
+        },
+        "start": "={{ $now.plus({days: 1}).set({hour: 11, minute: 0}).toISO() }}",
+        "end": "={{ $now.plus({days: 1}).set({hour: 11, minute: 30}).toISO() }}",
+        "additionalFields": {
+          "guestsCanModify": false,
+          "sendUpdates": "all"
+        }
+      },
+      "id": "d85279c5-79bc-40d4-b422-5a941559d905",
+      "name": "Book Google Calendar Slot",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        -416
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "dBwrA2qROEFCmo4y",
+          "name": "Google Calendar account"
+        }
+      },
+      "notes": "Creates a 30-min consultation slot for the next business day at 11 AM. Adjust the time logic as needed."
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Extract Message Fields').item.json.wabaId }}",
+        "recipientPhoneNumber": "={{ $('Extract Message Fields').item.json.senderPhone }}",
+        "textBody": "=Assalam o Alaikum {{ $('Extract Message Fields').item.json.senderName }}! 🎉\n\nGreat news — I've registered your property consultation with our broker. Here are your details:\n\n📅 *Date & Time:* {{ $json.start ?? 'Tomorrow 11:00 AM' }}\n🏠 *Interest:* {{ $('Parse Agent Output').item.json.qualData.interest }}\n💰 *Budget:* PKR {{ $('Parse Agent Output').item.json.qualData.budget_pkr?.toLocaleString() }}\n\nYou will receive a Google Calendar invite shortly. Our broker will call you to confirm. Looking forward to finding your dream property in Lahore! 🌟",
+        "additionalFields": {}
+      },
+      "id": "7c5bdac8-f57c-49ef-be59-9bd501264962",
+      "name": "WhatsApp – Confirm to Client",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        32,
+        -448
+      ],
+      "webhookId": "709ef322-b7c7-4e85-a9f1-fc28a67e414c"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Extract Message Fields').item.json.wabaId }}",
+        "recipientPhoneNumber": "=REPLACE_WITH_BROKER_WHATSAPP_NUMBER",
+        "textBody": "=🔔 *NEW QUALIFIED LEAD* 🔔\n\n👤 *Name:* {{ $('Extract Message Fields').item.json.senderName }}\n📞 *Phone:* {{ $('Extract Message Fields').item.json.senderPhone }}\n🏠 *Interest:* {{ $('Parse Agent Output').item.json.qualData.interest }}\n💰 *Budget:* PKR {{ $('Parse Agent Output').item.json.qualData.budget_pkr?.toLocaleString() }}\n⏳ *Timeline:* {{ $('Parse Agent Output').item.json.qualData.timeline_months }} month(s)\n📅 *Consultation booked for tomorrow 11:00 AM*\n\n_Lead generated by WhatsApp AI Agent_",
+        "additionalFields": {}
+      },
+      "id": "ddf2f0a7-f48f-4e95-bd9d-862812fb8eff",
+      "name": "WhatsApp – Notify Broker",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        32,
+        -176
+      ],
+      "webhookId": "d9d05e3c-e413-4b0b-8212-0b46ce435b4c"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $('Extract Message Fields').item.json.wabaId }}",
+        "recipientPhoneNumber": "={{ $('Extract Message Fields').item.json.senderPhone }}",
+        "textBody": "={{ $('Parse Agent Output').item.json.agentReply }}",
+        "additionalFields": {}
+      },
+      "id": "09ccadef-ec18-4f9e-9794-9704768423d6",
+      "name": "WhatsApp – Nurture Reply",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        64
+      ],
+      "webhookId": "fdde551b-a6c1-496b-bc6b-fda6fa75fd46",
+      "notes": "Sends the agent's conversational reply back to the user while still gathering qualification info."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log nurture touch to console (replace with your CRM/Airtable/Sheet node if needed)\nconst phone  = $input.first().json.senderPhone;\nconst name   = $input.first().json.senderName;\nconst reply  = $input.first().json.agentReply;\nconst isCold = $input.first().json.isColdLead;\n\nconsole.log(`[NURTURE] ${name} (${phone}) | cold=${isCold} | reply=\"${reply.slice(0,80)}...\"`);\n\nreturn [{ json: { status: 'nurture_logged', phone, name, isCold } }];"
+      },
+      "id": "3cf6e327-60b3-4c62-bd94-cfe703521d1b",
+      "name": "Tag as Nurture Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        48,
+        64
+      ],
+      "notes": "Replace this Code node with an Airtable, Google Sheets, or CRM node to persist nurture leads."
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "ok",
+        "options": {}
+      },
+      "id": "8bd1fe6c-9b58-4fae-83b2-68996facd8f0",
+      "name": "Final Webhook ACK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        384,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        416,
+        208
+      ],
+      "id": "d26d13e7-8979-4ecb-8a87-020591a8e2b7",
+      "name": "WhatsApp Trigger",
+      "webhookId": "2f8afa17-b020-4b73-9ea2-8a7220895e03"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "WhatsApp Webhook Trigger": {
+      "main": [
+        []
+      ]
+    },
+    "Filter – Text Messages Only": {
+      "main": [
+        [
+          {
+            "node": "Extract Message Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Webhook ACK (200 OK)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Message Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Lead-Gen Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Lead-Gen Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse Agent Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Agent Output": {
+      "main": [
+        [
+          {
+            "node": "Qualified Lead?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qualified Lead?": {
+      "main": [
+        [
+          {
+            "node": "Book Google Calendar Slot",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WhatsApp – Nurture Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book Google Calendar Slot": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp – Confirm to Client",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "WhatsApp – Notify Broker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp – Confirm to Client": {
+      "main": [
+        []
+      ]
+    },
+    "WhatsApp – Notify Broker": {
+      "main": [
+        []
+      ]
+    },
+    "WhatsApp – Nurture Reply": {
+      "main": [
+        [
+          {
+            "node": "Tag as Nurture Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag as Nurture Lead": {
+      "main": [
+        []
+      ]
+    },
+    "OpenAI GPT-4o": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Lead-Gen Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversation Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Lead-Gen Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4addd856-fe25-4c1a-b8b8-d0ff01bf747a",
+  "meta": {
+    "instanceId": "2c4c872d0ac20197ae371b7188071696e523c9123fceae1f1f906f947f888f09"
+  },
+  "id": "WWxht6wxpjdzSsT9",
+  "tags": [
+    {
+      "updatedAt": "2026-06-06T15:08:21.592Z",
+      "createdAt": "2026-06-06T15:08:21.592Z",
+      "id": "4K0kZgSK509LXedk",
+      "name": "ai-agent"
+    },
+    {
+      "updatedAt": "2026-06-06T15:08:21.622Z",
+      "createdAt": "2026-06-06T15:08:21.622Z",
+      "id": "J4J5O5JFjhVu2qeU",
+      "name": "real-estate"
+    },
+    {
+      "updatedAt": "2026-06-06T15:08:21.560Z",
+      "createdAt": "2026-06-06T15:08:21.560Z",
+      "id": "iW65TMVK3tiHYXcX",
+      "name": "whatsapp"
+    },
+    {
+      "updatedAt": "2026-06-06T15:08:21.649Z",
+      "createdAt": "2026-06-06T15:08:21.649Z",
+      "id": "msTkCFlaTH0wVCqz",
+      "name": "lahore"
+    }
+  ]
+}

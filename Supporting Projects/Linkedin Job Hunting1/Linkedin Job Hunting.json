@@ -1,0 +1,791 @@
+{
+  "name": "Linkedin Job Hunting",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 17
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        752,
+        -752
+      ],
+      "id": "61540c3c-b01b-479a-a816-1ea73b582c79",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1RsB-WQ6fkcH9afu8pkeBVsMO9u8y5SPl",
+          "mode": "list",
+          "cachedResultName": "Senior IT Support Engineer & IT Operations & Infrastructure_compressed.pdf",
+          "cachedResultUrl": "https://drive.google.com/file/d/1RsB-WQ6fkcH9afu8pkeBVsMO9u8y5SPl/view?usp=drivesdk"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        928,
+        -752
+      ],
+      "id": "cbac9f87-f98c-4a22-9821-d455bf3c8f20",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "DgPJjduEx1MFZRJ0",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        1104,
+        -752
+      ],
+      "id": "9c1357f2-a470-4a2e-bc57-aa1cfa4fdb6a",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "10HFhK9wE35ACCiGlUQ-VC96auzEnueT6kActI8bBJAc",
+          "mode": "list",
+          "cachedResultName": "Job Search N8N",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/10HFhK9wE35ACCiGlUQ-VC96auzEnueT6kActI8bBJAc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Filter",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/10HFhK9wE35ACCiGlUQ-VC96auzEnueT6kActI8bBJAc/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1280,
+        -752
+      ],
+      "id": "9a792cc2-0775-4dca-be52-07a91f10625b",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "M5wlNMx8lZX10uEq",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let url = \"https://www.linkedin.com/jobs/search/?f_TPR=r604800\"\n\nconst keyword = $input.first().json.Keyword\nconst location = $input.first().json.Location\nconst experiencelevel = $input.first().json['Experience Level']\nconst remote = $input.first().json.Remote\nconst jobtype = $input.first().json['Job Type']\nconst easyApply = $input.first().json['Easy Apply']\n\nif (keyword != \"None\") {\n  url += `&keywords=${keyword}`;\n}\n\nif (keyword != \"\") {\n  url += `&location=${location}`;\n}\n\n// We have experiencelevel as a string with values like \"Internship, Entry Level,\"\n// we transform it to \"1, 2, 3\" where:\n// Internship -> 1\n// Entry Level -> 2\n// Associate -> 3\n// Mid-Senior Level -> 4\n// Director -> 5\n// Executive -> 6\n\nif (experiencelevel != \"\"){\n  const transformedExperiences = experiencelevel\n    .split(\",\")\n    .map((exp) => {\n      switch (exp.trim()) {\n        case \"Internship\": \n          return \"1\";\n        case \"Entry Level\": \n          return \"2\";\n        case \"Associate\": \n          return \"3\";\n        case \"Mid-Senior Level\": \n          return \"4\";\n        case \"Director\": \n          return \"5\";\n        case \"Executive\": \n          return \"6\";\n        default: return \"\";\n      }\n    })\n    .filter(Boolean);\n  url += `&f_E=${transformedExperiences.join(\",\")}`;\n}\n\nif (remote.length != \"\") {\n  // Transform remote options to LinkedIn codes\n  // On-Site -> 1, Remote -> 2, Hybrid -> 3\n  const transformedRemote = remote\n    .split(\",\")\n    .map((e) => {\n      switch (e.trim()) {\n        case \"Remote\": return \"2\";\n        case \"Hybrid\": return \"3\";\n        case \"On-Site\": return \"1\";\n        default: return \"\";\n      }\n    })\n    .filter(Boolean);\n  url += `&f_WT=${transformedRemote.join(\",\")}`;\n}\n\n\nif (jobtype != \"\") {\n  // Transform job types to LinkedIn codes\n  // Full-time -> F, Part-time -> P, Contract -> C, etc.\n  const transformedJobType = jobtype\n    .split(\",\")\n    .map((type) => type.trim().charAt(0).toUpperCase());\n  url += `&f_JT=${transformedJobType.join(\",\")}`;\n}\n\nif (easyApply != \"\") {\n  url += \"&f_AL=true\";\n}\n\nreturn {url}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1456,
+        -752
+      ],
+      "id": "cb395e82-faa5-4c98-8c29-555482098032",
+      "name": "Create Search URL"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1632,
+        -752
+      ],
+      "id": "c4992637-3082-4ec3-a545-1ac4129cf59a",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "links",
+              "cssSelector": "ul.jobs-search__results-list li div a[class*=\"base-card\"]",
+              "returnValue": "attribute",
+              "attribute": "href",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        1808,
+        -752
+      ],
+      "id": "64c2b61c-3091-49f8-8483-1320f49a8470",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "links",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1984,
+        -752
+      ],
+      "id": "7999e3c0-5862-40c5-9c44-2acec3f9c569",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2512,
+        -240
+      ],
+      "id": "9982c8fa-bbe4-4b8a-9182-810df7e39c71",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        848,
+        -576
+      ],
+      "id": "cf85da33-5214-41be-a3b5-311e14e3fe62",
+      "name": "Wait",
+      "webhookId": "1cbd0d8b-f273-439d-bcd1-1bec3c3aaa7b"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.links }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1216,
+        -576
+      ],
+      "id": "9075c772-d3a9-4108-b821-dfd5900c037c",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "title",
+              "cssSelector": "div h1"
+            },
+            {
+              "key": "company",
+              "cssSelector": "div span a"
+            },
+            {
+              "key": "location",
+              "cssSelector": "div span[class*='topcard__flavor topcard__flavor--bullet']"
+            },
+            {
+              "key": "description",
+              "cssSelector": "div.description__text.description__text--rich"
+            },
+            {
+              "key": "jobid",
+              "cssSelector": "a[data-item-type='semaphore']",
+              "returnValue": "attribute",
+              "attribute": "data-semaphore-content-urn"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        1376,
+        -576
+      ],
+      "id": "f7dedadd-0144-4e22-9caf-ca7a89e1a766",
+      "name": "HTML1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e320042f-aadf-41f6-bb49-5544b25c1b6c",
+              "name": "description",
+              "value": "={{ $json.description.replaceAll(/\\s+/g, \" \") }}",
+              "type": "string"
+            },
+            {
+              "id": "cca17706-546c-41ba-8a1b-b876aa684004",
+              "name": "jobid",
+              "value": "={{ $json.jobid.split(\":\").last() }}",
+              "type": "string"
+            },
+            {
+              "id": "a19d1baf-48d9-4df4-987d-7f1fd7f99c5b",
+              "name": "applyLink",
+              "value": "={{ \"https://www.linkedin.com/jobs/view/\"+ $json.jobid.split(\":\").last() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1536,
+        -576
+      ],
+      "id": "747eaa20-423c-492d-8c58-bd4cbe236c7d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an assistant that helps match candidates to job opportunities. Your task is to review my resume, then analyze both the resume and job description to calculate a job matching score. Additionally, create a cover letter based on my resume and the job description. The cover letter should contain at least 2 paragraphs and should exclude the name, address, and signature sections from the beginning and end.\n\nWhen using special characters like quotation marks (\"), ensure they are properly escaped with a backslash. The output must be formatted as valid JSON that can be parsed without errors.\n\nFor example, your response should be like: {\"score\": 80, \"coverLetter\": \"sample cover letter\" }\n\njob_description: {{ $json.description }}\nmy_resume: {{ $('Extract from File').item.json.text }}\n",
+        "options": {
+          "systemMessage": "=You are an experienced Technical Recruiter, HR Specialist, and Professional Resume Writer.\n\nYour primary responsibility is to evaluate how well a candidate's resume matches a job description and produce a professional, fair, and objective assessment.\n\n## Instructions\n\nYou will receive:\n\n1. A candidate's resume.\n2. A job description.\n\nYour tasks are:\n\n### 1. Analyze the Resume\n\nCarefully review the candidate's:\n\n* Skills\n* Technical expertise\n* Work experience\n* Projects\n* Education\n* Certifications\n* Achievements\n* Relevant keywords\n\n### 2. Analyze the Job Description\n\nIdentify:\n\n* Required skills\n* Preferred skills\n* Experience requirements\n* Technologies\n* Responsibilities\n* Qualifications\n* Soft skills\n* Industry domain\n\n### 3. Calculate the Match Score\n\nProvide a realistic match score between **0 and 100**.\n\nThe score should be based on:\n\n* Technical skill alignment\n* Relevant work experience\n* Required technologies\n* Domain knowledge\n* Education\n* Responsibilities performed\n* Overall suitability\n\nDo not inflate or deflate the score. Be objective and realistic.\n\n### 4. Generate a Professional Cover Letter\n\nWrite a natural, human-like cover letter that:\n\n* Is tailored specifically to the provided job description.\n* Uses information only from the candidate's resume.\n* Does not invent experience, projects, certifications, or skills.\n* Sounds confident but not exaggerated.\n* Is professional, conversational, and easy to read.\n* Avoids repetitive or AI-generated wording.\n* Contains at least two well-structured paragraphs.\n* Focuses on how the candidate's experience aligns with the job requirements.\n* Shows enthusiasm for the opportunity.\n* Does NOT include:\n\n  * Candidate name\n  * Address\n  * Phone number\n  * Email\n  * Date\n  * Company address\n  * Hiring manager name\n  * Subject line\n  * Signature\n  * \"Sincerely\", \"Regards\", or similar closing statements.\n\n### Writing Style\n\nUse:\n\n* Clear and concise English\n* Professional tone\n* Human-like writing\n* Short to medium-length sentences\n* Active voice\n* Simple vocabulary\n* No buzzword stuffing\n* No emojis\n* No markdown\n* No bullet points in the cover letter\n\n### Output Format\n\nReturn exactly the following fields and nothing else:\n\nScore:\n<number between 0 and 100>\n\nCover Letter: <Complete cover letter only>\n\n\n\n\n## Cover Letter Requirements\n\nGenerate a personalized, professional, and natural-sounding cover letter based only on the information provided in the candidate's resume and the job description.\n\nThe cover letter should:\n\n* Be tailored specifically to the job description.\n* Highlight the candidate's most relevant experience, skills, and achievements.\n* Explain why the candidate is a strong fit for the role.\n* Demonstrate enthusiasm for the opportunity and the company.\n* Use clear, simple, and professional English.\n* Sound like it was written by an experienced professional, not by AI.\n* Be ATS-friendly.\n* Avoid clichés, buzzwords, and unnecessary repetition.\n* Never invent skills, certifications, projects, or experience that are not present in the resume.\n\n### Structure\n\nParagraph 1:\nIntroduce interest in the position and briefly explain why the candidate is a strong match.\n\nParagraph 2:\nHighlight the most relevant technical skills, work experience, accomplishments, and how they align with the job requirements.\n\nParagraph 3:\nExpress enthusiasm for contributing to the company, reinforce the candidate's value, and end with a polite statement indicating interest in discussing the opportunity further.\n\n### Do NOT include\n\n* Candidate name\n* Company address\n* Hiring manager name\n* Date\n* Subject line\n* \"Dear Hiring Manager\"\n* \"To Whom It May Concern\"\n* Signature\n* \"Sincerely\", \"Regards\", \"Best Regards\", or similar closing text\n\nReturn only the cover letter body as plain text.\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        -368
+      ],
+      "id": "eba78b13-f653-447c-b243-eb07dbfc8c36",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $json.output.replaceAll(/```(?:json)?/g, \"\") }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1408,
+        -368
+      ],
+      "id": "a999c808-77b4-4be5-8026-7ae0e0dc1198",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "10HFhK9wE35ACCiGlUQ-VC96auzEnueT6kActI8bBJAc",
+          "mode": "list",
+          "cachedResultName": "Job Search N8N",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/10HFhK9wE35ACCiGlUQ-VC96auzEnueT6kActI8bBJAc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 542657651,
+          "mode": "list",
+          "cachedResultName": "Results",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/10HFhK9wE35ACCiGlUQ-VC96auzEnueT6kActI8bBJAc/edit#gid=542657651"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Link": "={{ $('Edit Fields').item.json.applyLink }}",
+            "Company": "={{ $('Edit Fields').item.json.company }}",
+            "Location ": "={{ $('Edit Fields').item.json.location }}",
+            "Title ": "={{ $('Edit Fields').item.json.title }}",
+            "Score": "={{ $json.score }}",
+            "Description": "={{ $('Edit Fields').item.json.description }}",
+            "Cover Letter": "={{ $json.coverLetter }}"
+          },
+          "matchingColumns": [
+            "Link"
+          ],
+          "schema": [
+            {
+              "id": "Title ",
+              "displayName": "Title ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Location ",
+              "displayName": "Location ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Link",
+              "displayName": "Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Cover Letter",
+              "displayName": "Cover Letter",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1568,
+        -368
+      ],
+      "id": "bf452ac3-f4c6-47ff-bae3-b3bc64f51314",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "M5wlNMx8lZX10uEq",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "70c5826e-bbbd-4929-ab23-8faa7f066384",
+              "leftValue": "={{ $json.Score }}",
+              "rightValue": 50,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1744,
+        -368
+      ],
+      "id": "31541aff-9ca4-467a-81e4-d7efee387806",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "mudassirtahir.mt@gmail.com",
+        "subject": "Daily Matching Job Alert",
+        "message": "=<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>Job Opportunity Summary</title>\n</head>\n\n<body style=\"margin:0;padding:0;background:#f4f6f9;font-family:Arial,Helvetica,sans-serif;\">\n\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#f4f6f9;padding:30px 0;\">\n<tr>\n<td align=\"center\">\n\n<table width=\"700\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e5e5e5;\">\n\n    <!-- Header -->\n    <tr>\n        <td style=\"background:#1f4e79;color:#ffffff;padding:25px 35px;\">\n            <h1 style=\"margin:0;font-size:26px;font-weight:bold;\">\n                🚀 New Job Opportunity Found\n            </h1>\n            <p style=\"margin:8px 0 0;font-size:15px;color:#dbe9f6;\">\n                Generated automatically by your recruitment workflow\n            </p>\n        </td>\n    </tr>\n\n    <!-- Job Details -->\n    <tr>\n        <td style=\"padding:35px;\">\n\n            <h2 style=\"margin:0 0 25px;color:#1f4e79;border-bottom:2px solid #eeeeee;padding-bottom:10px;\">\n                Job Information\n            </h2>\n\n            <table width=\"100%\" cellpadding=\"8\" cellspacing=\"0\" style=\"border-collapse:collapse;\">\n\n                <tr>\n                    <td width=\"180\" style=\"font-weight:bold;color:#555555;\">\n                        Job Title\n                    </td>\n                    <td style=\"color:#333333;\">\n                        {{ $json['Title '] }}\n                    </td>\n                </tr>\n\n                <tr style=\"background:#f8f9fb;\">\n                    <td style=\"font-weight:bold;color:#555555;\">\n                        Company\n                    </td>\n                    <td style=\"color:#333333;\">\n                        {{ $json.Company }}\n                    </td>\n                </tr>\n\n                <tr>\n                    <td style=\"font-weight:bold;color:#555555;\">\n                        Location\n                    </td>\n                    <td style=\"color:#333333;\">\n                        {{ $json['Location '] }}\n                    </td>\n                </tr>\n\n                <tr style=\"background:#f8f9fb;\">\n                    <td style=\"font-weight:bold;color:#555555;\">\n                        Match Score\n                    </td>\n                    <td>\n                        <span style=\"display:inline-block;background:#28a745;color:#ffffff;padding:6px 14px;border-radius:20px;font-weight:bold;\">\n                            {{ $json.Score }}\n                        </span>\n                    </td>\n                </tr>\n\n                <tr>\n                    <td style=\"font-weight:bold;color:#555555;\">\n                        Job Link\n                    </td>\n                    <td>\n                        <a href=\"{{ $json.Link }}\"\n                           style=\"color:#0d6efd;text-decoration:none;font-weight:bold;\">\n                            View Job Posting →\n                        </a>\n                    </td>\n                </tr>\n\n            </table>\n\n            <!-- Description -->\n            <div style=\"margin-top:35px;\">\n                <h2 style=\"color:#1f4e79;border-bottom:2px solid #eeeeee;padding-bottom:10px;\">\n                    Job Description\n                </h2>\n\n                <div style=\"background:#f8f9fb;border-left:4px solid #1f4e79;padding:18px;white-space:pre-wrap;line-height:1.7;color:#444444;\">\n{{ $json.Description }}\n                </div>\n            </div>\n\n            <!-- Cover Letter -->\n            <div style=\"margin-top:35px;\">\n                <h2 style=\"color:#1f4e79;border-bottom:2px solid #eeeeee;padding-bottom:10px;\">\n                    AI Generated Cover Letter\n                </h2>\n\n                <div style=\"background:#fff8e6;border-left:4px solid #ff9800;padding:18px;white-space:pre-wrap;line-height:1.8;color:#444444;\">\n{{ $json['Cover Letter'] }}\n                </div>\n            </div>\n\n        </td>\n    </tr>\n\n    <!-- Footer -->\n    <tr>\n        <td style=\"background:#f4f6f9;padding:20px;text-align:center;font-size:13px;color:#777777;\">\n            <strong>Generated Automatically</strong><br>\n            This email was created by your n8n job hunting automation workflow.<br><br>\n\n            <span style=\"color:#999999;\">\n                Happy Job Hunting! 🚀\n            </span>\n        </td>\n    </tr>\n\n</table>\n\n</td>\n</tr>\n</table>\n\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1840,
+        -208
+      ],
+      "id": "39af550b-0af7-4286-8373-0a321f14a7fa",
+      "name": "Send a message",
+      "webhookId": "4650aca5-8d16-4ff6-87bb-188b24d1afec",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "3y1S4G6FIDsbReYR",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1664,
+        -192
+      ],
+      "id": "5f089ee9-d2fd-4ef1-8204-a22fbc531781",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "BegXQjsYPRTIUbrv",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        -160
+      ],
+      "id": "b20595f6-68d8-452d-9d4e-eb0b2d40be9c",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "KVQ9wZfuAjB6DsDR",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "847608292",
+        "text": "=🚀 <b>NEW JOB OPPORTUNITY FOUND</b>\n\n━━━━━━━━━━━━━━━━━━━━━━\n\n<b>💼 Job Title</b>\n{{ $json['Title '] }}\n\n<b>🏢 Company</b>\n{{ $json.Company }}\n\n<b>📍 Location</b>\n{{ $json['Location '] }}\n\n<b>🎯 Job Match Score</b>\n<code>{{ $json.Score }}</code>\n\n━━━━━━━━━━━━━━━━━━━━━━\n\n<b>🔗 Apply Here</b>\n\n<a href=\"{{ $json.Link }}\">Open Job Posting</a>\n\n━━━━━━━━━━━━━━━━━━━━━━\n\n<b>📝 AI Generated Cover Letter</b>\n\n<pre>{{ $json['Cover Letter'] }}</pre>\n\n━━━━━━━━━━━━━━━━━━━━━━\n\n🤖 <i>Generated automatically by your n8n Job Hunting Workflow</i>",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2048,
+        -496
+      ],
+      "id": "efd92a13-e1db-4445-9703-4e5f8095a6f6",
+      "name": "Send a text message",
+      "webhookId": "bddb7ab8-d266-47a5-9e0e-7f9528105a7f",
+      "credentials": {
+        "telegramApi": {
+          "id": "a3u8EF7HDUQ4IbkX",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Create Search URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Search URL": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "HTML1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        []
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "225102e4-6627-49f7-a99f-c91b5d6fd36d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9e58c2ae1f351cb1fa5828e5170ee45463a237042644c15bb6e9da1c1d399997"
+  },
+  "id": "SfmiMvqmFn1fw2G3",
+  "tags": []
+}

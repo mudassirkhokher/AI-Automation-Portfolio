@@ -1,0 +1,163 @@
+{
+  "name": "Parent Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -720,
+        -224
+      ],
+      "id": "bc5164f6-811d-4178-988a-c448ea4f131f",
+      "name": "When chat message received",
+      "webhookId": "45f8f082-9e02-424d-9199-d3ec586a45af"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "You are a helpful assistant.\n#Tools\n-  Use the \"Weather\" Tool to find the weather of any city."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -480,
+        -160
+      ],
+      "id": "12814f7e-131e-4b8c-a72b-7b25c2940a06",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -688,
+        112
+      ],
+      "id": "9b80d08f-23de-4ad7-8f99-f4ee8ecc89ae",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -480,
+        112
+      ],
+      "id": "e54e43ef-ee34-4cf0-8028-0fd7a44820ee",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to find the weather of any city",
+        "workflowId": {
+          "__rl": true,
+          "value": "pe6qBomAVwxNxRQL",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/pe6qBomAVwxNxRQL",
+          "cachedResultName": "Child Workflow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -192,
+        128
+      ],
+      "id": "9b75fcd7-453e-4086-908f-6ae19b40c92c",
+      "name": "Weather"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weather": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "7bbf2a4e-47ea-4153-84d7-05cc435a9eb1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8f500cb1116450dd4fe649fa720f027553d2ba5fa35c2b3be047238dfa8be6cc"
+  },
+  "id": "sd5cUrImusRyQlz2",
+  "tags": []
+}

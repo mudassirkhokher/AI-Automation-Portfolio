@@ -1,0 +1,446 @@
+{
+  "name": "Human in the Loop",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "X-Post-Automation",
+        "formDescription": "Automating the process of X-Post creation.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Topic",
+              "placeholder": "Artificial Intelligence in 2026",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -3152,
+        -1344
+      ],
+      "id": "7d60e0ec-664a-4212-8c20-70eea15e21cc",
+      "name": "On form submission",
+      "webhookId": "765c4055-0a7c-4123-92e8-aeb4254c21a5"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Topic : {{ $json.Topic }}",
+        "options": {
+          "systemMessage": "=# Overview\nYou are an AI agent responsible for creating Twitter (X) posts based on user requests.\nPosts should always be less than 200 characters.\n\n## Instructions\n1. Always use the Tavily Search tool to find accurate, current information about the topic.\n2. Write an informative, engaging tweet (up to 180 characters).\n3. Include a brief reference to the source (e.g., \"via TechCrunch\", \"according to The Verge\") directly in the tweet.\n4. Do not output anything except the final tweet.\n\n## Tool\n- Tavily Search: Use this for real-time web search. Must be used every time before creating the post. Current date and time: {{ $now }}\n\n## Example\n1) Input: \"Create a tweet about NASA’s latest discovery.\"\n2) Action: Search the web using Tavily Search.\n3) Output: \"NASA just found signs of ancient riverbeds on Mars—suggesting the Red Planet may have once been home to life. Huge leap in space exploration 🌎 (via NASA) #Mars #SpaceNews\"\n\n## Final Notes\n- Avoid clickbait or speculation—stick to factual and sourced content.\n- Always use hashtags.\n- Use emojis only to enhance visibility.\n- Keep language friendly, concise, and informative.\n- Never use an \"@\" symbol when referencing the source."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -2976,
+        -1344
+      ],
+      "id": "d9a0a579-6e70-42f9-8ee3-8ac1221e5cda",
+      "name": "X Post Agent"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -2800,
+        -928
+      ],
+      "id": "7dc64d74-b29c-4a3e-9c91-794cafe02132",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "yO1vJ2MxYVI3iyzl",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool to search the web. ",
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"query\": \"{searchTerm}\",\n  \"topic\": \"general\",\n  \"search_depth\": \"advanced\",\n  \"chunks_per_source\": 3,\n  \"max_results\": 1,\n  \"time_range\": null,\n  \"days\": 7,\n  \"include_answer\": true,\n  \"include_raw_content\": false,\n  \"include_images\": false,\n  \"include_image_descriptions\": false,\n  \"include_domains\": [],\n  \"exclude_domains\": []\n}",
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "searchTerm",
+              "description": "What the user is searching for. "
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        -3008,
+        -944
+      ],
+      "id": "57641f40-ed1d-4789-bf11-c6ff272f6934",
+      "name": "Tavily Search",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "F1KiApPff5rKRkJW",
+          "name": "Tavily Search"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dc398cca-144b-412a-8d43-f3b0dd827b1a",
+              "name": "post",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2624,
+        -1344
+      ],
+      "id": "0a8763b3-7aa0-4385-a8ab-0ce4760a2c07",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "mr.mudassir.dr@gmail.com",
+        "subject": "Approval Request for X Post",
+        "message": "=Good to Go:\n\n {{ $json.post }}",
+        "responseType": "freeText",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -2416,
+        -1344
+      ],
+      "id": "02b8d7ab-6cb6-44d5-8dc3-f9568c7048cf",
+      "name": "Send message and wait for response",
+      "webhookId": "e7bfc0c3-8ce6-423a-9d21-bafed0189ed0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "oJJU1N9n4K3xNtGF",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputText": "={{ $json.data.text }}",
+        "categories": {
+          "categories": [
+            {
+              "category": "approved",
+              "description": "=The post has been reviewed and accepted as-is. The human explicitily or implicitily expresses approval, including that no changes are needed.\n\n\nExample pharases include:\n\n\"Looks good.\"\n\"Go ahead and send it.\"\n'This workd for me.\n\"Approved.\"\n\"No changes needed.\""
+            },
+            {
+              "category": "declined",
+              "description": "=The post has been reviewed, but human requests modifications before if is sent like tweake, removing parts, rewording, etc. This could include suggested edits. rewording, or major revisions.\n\nExample pharases include:\n\n\"Can we tweak this part?\"\n\"make it shorter\"\n\"change the source to 'American kennel Club'\"\n\"more emojis\""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1.1,
+      "position": [
+        -2208,
+        -1344
+      ],
+      "id": "f6aacaf3-61e6-4ef1-a8e3-1d22ea77b96f",
+      "name": "Text Classifier"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -2288,
+        -1072
+      ],
+      "id": "e5569d34-7d0d-48bf-87d7-d2f419c1cfe7",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "yO1vJ2MxYVI3iyzl",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Here is the post to revise: {{ $('Edit Fields').item.json.post }}\n\nHere is the human feedback: {{ $json.data.text }}",
+        "options": {
+          "systemMessage": "=# Overview\nYou are an expert twitter writer. Your job is to take incoming post the revise it based on the feesback the human submitted. Make sure the post characters cannot esceed the 200 characters.\nAlso if the revisement needs real time data then use tavily tool to search real-time data otherwise ignore taviy.\n\n\n## Tool\n- Tavily Search: Use this for real-time web search. Current date and time: {{ $now }}\n\n# Instruction\n-Jist give only output text means post text. Dont include text like \"Here is your revised version....\" or something at the endding like \"how's now\" etc"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -2096,
+        -1104
+      ],
+      "id": "04117e38-b25e-4da5-81b3-f41745f4601e",
+      "name": "X Post Agent1"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -1904,
+        -752
+      ],
+      "id": "ca212cdd-8f8e-41ac-b046-13a11cfdbe17",
+      "name": "Groq Chat Model2",
+      "credentials": {
+        "groqApi": {
+          "id": "yO1vJ2MxYVI3iyzl",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool to search the web. ",
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"query\": \"{searchTerm}\",\n  \"topic\": \"general\",\n  \"search_depth\": \"advanced\",\n  \"chunks_per_source\": 3,\n  \"max_results\": 1,\n  \"time_range\": null,\n  \"days\": 7,\n  \"include_answer\": true,\n  \"include_raw_content\": false,\n  \"include_images\": false,\n  \"include_image_descriptions\": false,\n  \"include_domains\": [],\n  \"exclude_domains\": []\n}",
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "searchTerm",
+              "description": "What the user is searching for. "
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        -2080,
+        -768
+      ],
+      "id": "395717c4-bd4a-41c1-81f2-72ebafa993d0",
+      "name": "Tavily Search1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "F1KiApPff5rKRkJW",
+          "name": "Tavily Search"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $('Edit Fields').item.json.post }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.twitter",
+      "typeVersion": 2,
+      "position": [
+        -1808,
+        -1360
+      ],
+      "id": "c8b65cbe-68ef-461f-b5a7-45392ae8ea98",
+      "name": "Create Tweet",
+      "credentials": {
+        "twitterOAuth2Api": {
+          "id": "yaxJiX9ikS2htK6v",
+          "name": "X account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "On form submission": [
+      {
+        "json": {
+          "Topic": "How to use opensourse ai agents api in n8n 2026",
+          "submittedAt": "2026-07-15T20:08:10.584+05:00",
+          "formMode": "test"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "X Post Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "X Post Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily Search": {
+      "ai_tool": [
+        [
+          {
+            "node": "X Post Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "X Post Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response": {
+      "main": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Text Classifier",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "X Post Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily Search1": {
+      "ai_tool": [
+        [
+          {
+            "node": "X Post Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Classifier": {
+      "main": [
+        [
+          {
+            "node": "Create Tweet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "X Post Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "X Post Agent1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "cb67bf68-1c0d-46b7-9a1e-cb1729b266d3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b5b91cf82136f2959b6478a685c25e40f397fcf16756705b1a28fe90b322fc76"
+  },
+  "nodeGroups": [],
+  "id": "RbvYogOvjTnWynzV",
+  "tags": []
+}

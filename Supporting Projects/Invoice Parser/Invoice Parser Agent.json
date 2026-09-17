@@ -1,0 +1,626 @@
+{
+  "name": "Invoice Parser Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1kuHbhuS5hdTMhar7wItiTFryOhA6oAzW",
+          "mode": "list",
+          "cachedResultName": "Invoices",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1kuHbhuS5hdTMhar7wItiTFryOhA6oAzW"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2128,
+        -1200
+      ],
+      "id": "fa28e699-51b7-4319-b066-523cf30749ba",
+      "name": "Google Drive Trigger",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "e02sU3IzZvsivCHU",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1952,
+        -1200
+      ],
+      "id": "e2ed7e90-c114-4066-a00b-ab89dc53c2e3",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "e02sU3IzZvsivCHU",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1776,
+        -1200
+      ],
+      "id": "e453b5d2-674a-4914-a357-6edbcb917237",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.text }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "Invoice Number",
+              "description": "contains the invoice number",
+              "required": true
+            },
+            {
+              "name": "Company Name",
+              "description": "the name of company",
+              "required": true
+            },
+            {
+              "name": "Name",
+              "description": "the name that sends an email ",
+              "required": true
+            },
+            {
+              "name": "Sender Email",
+              "description": "The sender Email",
+              "required": true
+            },
+            {
+              "name": "Sender Address",
+              "description": "The billing address of the sender",
+              "required": true
+            },
+            {
+              "name": "Total Amount",
+              "description": "The total amount of the invoice",
+              "required": true
+            },
+            {
+              "name": "Invoice Date",
+              "type": "date",
+              "description": "The date the invoice is send",
+              "required": true
+            },
+            {
+              "name": "Due Data",
+              "type": "date",
+              "description": "The date invoice was due",
+              "required": true
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "You are an expert extraction algorithm.\nOnly extract relevant information from the text.\nIf you do not know the value of an attribute asked to extract, you may omit the attribute's value."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        -1600,
+        -1200
+      ],
+      "id": "385f2b83-1ede-4f0f-b549-874ab0c44097",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -1648,
+        -976
+      ],
+      "id": "a9c0e187-aac6-4009-837f-3f04859b76ee",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "xiudgKqWTWlsjI2Q",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "18fqCCcoRVjqH8vJf5X1tRlMfoXN0lfSeM2rQar5ar2E",
+          "mode": "list",
+          "cachedResultName": "Invoice DataBase",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18fqCCcoRVjqH8vJf5X1tRlMfoXN0lfSeM2rQar5ar2E/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/18fqCCcoRVjqH8vJf5X1tRlMfoXN0lfSeM2rQar5ar2E/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Invoice Number": "={{ $json.output['Invoice Number'] }}",
+            "Company Name": "={{ $json.output['Company Name'] }}",
+            "Name": "={{ $json.output.Name }}",
+            "Sender Email": "={{ $json.output['Sender Email'] }}",
+            "Sender Address": "={{ $json.output['Sender Address'] }}",
+            "Invoice Date": "={{ $json.output['Invoice Date'] }}",
+            "Due Data": "={{ $json.output['Due Data'] }}",
+            "Total Amount": "={{ $json.output['Total Amount'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Invoice Number",
+              "displayName": "Invoice Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company Name",
+              "displayName": "Company Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sender Email",
+              "displayName": "Sender Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sender Address",
+              "displayName": "Sender Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Amount",
+              "displayName": "Total Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Invoice Date",
+              "displayName": "Invoice Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Due Data",
+              "displayName": "Due Data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -1296,
+        -1200
+      ],
+      "id": "78e3837a-254d-4260-93d2-693ab97db202",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "xdDP8DtQWek8N5jK",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Invoice Number: {{ $json['Invoice Number'] }}\nCompany Name: {{ $json['Company Name'] }}\nName: {{ $json.Name }}\nSender Email: {{ $json['Sender Email'] }}\nTotal Amount: {{ $json['Total Amount'] }}\nInvoice Date: {{ $json['Invoice Date'] }}\nDue Date: {{ $json['Due Data'] }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "systemMessage": "=You are Shayan, the designated email expert for Navafiz. Your responsibility is to professionally notify the Navafiz billing team upon receipt of a new invoice.\n\nEmail Task\nUpon receiving invoice details, compose a clear and concise email to the billing team that includes:\n\n-Confirmation that a new invoice has been received.\n-Notification that the invoice has been recorded in the Invoice Database.\n-A direct link to the updated database for their reference:\nhttps://docs.google.com/spreadsheets/d/18fqCCcoRVjqH8vJf5X1tRlMfoXN0lfSeM2rQar5ar2E/edit?usp=sharing\n\nOutput Format:\nReturn the following components separately:\n\nSubject: (A short and informative email subject line)\n\nBody: (The complete body of the email to send to the billing team)"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        -1120,
+        -1200
+      ],
+      "id": "19a03de6-e64f-4cfa-bfdc-b46ba10cd739",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "VXmaVYk7X3p7rrhO",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "mudassirtahir.mt@gmail.com",
+        "subject": "New Bill Update",
+        "emailType": "text",
+        "message": "={{ $json.content.parts[0].text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -768,
+        -1200
+      ],
+      "id": "93d7b28c-ab9e-42f6-aba0-0944250076a3",
+      "name": "Send a message",
+      "webhookId": "3521ab00-09ba-4795-a290-c44f2590dd45",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "oJJU1N9n4K3xNtGF",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -1200
+      ],
+      "id": "cdfa77a1-b5fc-453f-a99d-a8a3129613ac",
+      "name": "No Operation, do nothing"
+    }
+  ],
+  "pinData": {
+    "Google Drive Trigger": [
+      {
+        "json": {
+          "kind": "drive#file",
+          "fileExtension": "pdf",
+          "copyRequiresWriterPermission": false,
+          "md5Checksum": "2b182db10bc2d583c0d04f552c3e5def",
+          "writersCanShare": true,
+          "viewedByMe": true,
+          "mimeType": "application/pdf",
+          "parents": [
+            "1kuHbhuS5hdTMhar7wItiTFryOhA6oAzW"
+          ],
+          "thumbnailLink": "https://lh3.googleusercontent.com/drive-storage/AJQWtBPeQYgDZCe_swwiEP_A_NhzF2p7qlF_kc5lHPuptmw5V-hRKWgry34UCEuLgTl43IDj72bZwj4HZIANpZaQtneeeKzjUsbjdlRoXktB1ridF3zwVg=s220",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/application/pdf",
+          "shared": false,
+          "lastModifyingUser": {
+            "displayName": "Mudassir Tahir",
+            "kind": "drive#user",
+            "me": true,
+            "permissionId": "06457554000244138216",
+            "emailAddress": "mr.mudassir.dr@gmail.com",
+            "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocIBkMkagApMrNDnXsO9omN3DY6B7sozJ2RGuemyxdWaFHnCgw=s64"
+          },
+          "owners": [
+            {
+              "displayName": "Mudassir Tahir",
+              "kind": "drive#user",
+              "me": true,
+              "permissionId": "06457554000244138216",
+              "emailAddress": "mr.mudassir.dr@gmail.com",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocIBkMkagApMrNDnXsO9omN3DY6B7sozJ2RGuemyxdWaFHnCgw=s64"
+            }
+          ],
+          "headRevisionId": "0B0tUR_1qSAwmQ2tkRW1zcEpaV2swQmQ3ZUlqWUhHOCtuelJVPQ",
+          "webViewLink": "https://drive.google.com/file/d/1yTWlJ_8OFtsE-VcYxX13FuKD_i8jkK2F/view?usp=drivesdk",
+          "webContentLink": "https://drive.google.com/uc?id=1yTWlJ_8OFtsE-VcYxX13FuKD_i8jkK2F&export=download",
+          "size": "58093",
+          "viewersCanCopyContent": true,
+          "permissions": [
+            {
+              "id": "06457554000244138216",
+              "displayName": "Mudassir Tahir",
+              "type": "user",
+              "kind": "drive#permission",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocIBkMkagApMrNDnXsO9omN3DY6B7sozJ2RGuemyxdWaFHnCgw=s64",
+              "emailAddress": "mr.mudassir.dr@gmail.com",
+              "role": "owner",
+              "deleted": false,
+              "pendingOwner": false
+            }
+          ],
+          "hasThumbnail": true,
+          "spaces": [
+            "drive"
+          ],
+          "id": "1yTWlJ_8OFtsE-VcYxX13FuKD_i8jkK2F",
+          "name": "261914512610045.pdf",
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "createdTime": "2026-07-11T13:56:19.513Z",
+          "modifiedTime": "2026-07-11T13:55:28.000Z",
+          "modifiedByMeTime": "2026-07-11T13:55:28.000Z",
+          "viewedByMeTime": "2026-07-11T13:56:19.513Z",
+          "quotaBytesUsed": "58093",
+          "version": "3",
+          "originalFilename": "261914512610045.pdf",
+          "ownedByMe": true,
+          "fullFileExtension": "pdf",
+          "isAppAuthorized": false,
+          "capabilities": {
+            "canChangeViewersCanCopyContent": true,
+            "canEdit": true,
+            "canCopy": true,
+            "canComment": true,
+            "canAddChildren": false,
+            "canDelete": true,
+            "canDownload": true,
+            "canListChildren": false,
+            "canRemoveChildren": false,
+            "canRename": true,
+            "canTrash": true,
+            "canReadRevisions": true,
+            "canChangeCopyRequiresWriterPermission": true,
+            "canMoveItemIntoTeamDrive": true,
+            "canUntrash": true,
+            "canModifyContent": true,
+            "canMoveItemOutOfDrive": true,
+            "canAddMyDriveParent": false,
+            "canRemoveMyDriveParent": true,
+            "canMoveItemWithinDrive": true,
+            "canShare": true,
+            "canMoveChildrenWithinDrive": false,
+            "canModifyContentRestriction": true,
+            "canChangeSecurityUpdateEnabled": false,
+            "canAcceptOwnership": false,
+            "canReadLabels": false,
+            "canModifyLabels": false,
+            "canModifyEditorContentRestriction": true,
+            "canModifyOwnerContentRestriction": true,
+            "canRemoveContentRestriction": false,
+            "canDisableInheritedPermissions": false,
+            "canEnableInheritedPermissions": true,
+            "canChangeItemDownloadRestriction": true,
+            "canStartApproval": false,
+            "canAccessViaGenAi": true
+          },
+          "thumbnailVersion": "1",
+          "modifiedByMe": true,
+          "permissionIds": [
+            "06457554000244138216"
+          ],
+          "linkShareMetadata": {
+            "securityUpdateEligible": false,
+            "securityUpdateEnabled": true
+          },
+          "sha1Checksum": "b8b5ff020c255c52a8db13389f14ca68317b79de",
+          "sha256Checksum": "3babe71d6c233f07bee648386e357a35682a7eae587220cc1134a12116f54161",
+          "inheritedPermissionsDisabled": false,
+          "downloadRestrictions": {
+            "itemDownloadRestriction": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            },
+            "effectiveDownloadRestrictionWithContext": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            }
+          },
+          "clientEncryptionDetails": {
+            "decryptionMetadata": {
+              "wrappedKey": "",
+              "kaclsId": "0",
+              "aes256GcmChunkSize": "unset",
+              "keyFormat": "unsetKeyFormat",
+              "encryptionResourceKeyHash": ""
+            }
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Information Extractor": [
+      {
+        "json": {
+          "output": {
+            "Invoice Number": "OZ351148",
+            "Company Name": "In hac habi",
+            "Name": "Danice Shrawley",
+            "Sender Email": "hwhapham1@twitpic.com",
+            "Sender Address": "49378 Ryan Lane, 35 Starlin\nWashington, Di, 20525",
+            "Total Amount": "3335",
+            "Invoice Date": "2026-07-11",
+            "Due Data": "1970-01-01"
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "b9e11813-20db-4eb9-b14a-cbd7935f6e5b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b5b91cf82136f2959b6478a685c25e40f397fcf16756705b1a28fe90b322fc76"
+  },
+  "nodeGroups": [],
+  "id": "EIqqVLcuPMGr353N",
+  "tags": []
+}

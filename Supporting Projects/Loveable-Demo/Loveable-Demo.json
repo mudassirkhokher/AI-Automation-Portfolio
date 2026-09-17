@@ -1,0 +1,180 @@
+{
+  "name": "Loveable-Demo",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "loveable-demo",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -912,
+        -384
+      ],
+      "id": "1c2671fc-0757-41ef-b150-5f4bfaedc350",
+      "name": "Webhook",
+      "webhookId": "8f709c52-0ffe-4a71-b937-78088f0f41a5"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.question }}",
+        "options": {
+          "systemMessage": "You are an assistant who solves the user's problem. Always provide your answer briefly and be friendly with the user.\n\nUse the Serp tool if the user's question needs real-time data or information."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -704,
+        -384
+      ],
+      "id": "447570f1-0cc6-4beb-8f51-fd8ba4086176",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "q": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Search_Query__q_', ``, 'string') }}",
+        "location": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Location__location_', ``, 'string') }}",
+        "additionalFields": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-serpapi.serpApiTool",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -96
+      ],
+      "id": "75bb0629-e05a-4c94-ad2d-b9b3b6f7c858",
+      "name": "Google search in SerpApi",
+      "credentials": {
+        "serpApi": {
+          "id": "zQLgfsX9KKoUphZS",
+          "name": "SerpApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -352,
+        -384
+      ],
+      "id": "acc19deb-65db-4364-b70b-0367e5bfd5be",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -960,
+        -160
+      ],
+      "id": "5b80aee1-f25d-41e9-8e93-d11314503ba9",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "SL2HZStXXIR7DlYE",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-safeguard-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -752,
+        -128
+      ],
+      "id": "b39f76b4-e122-42f2-8831-3c78a87f3845",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "yO1vJ2MxYVI3iyzl",
+          "name": "Groq account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google search in SerpApi": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "26b5047c-7f5c-465d-b968-53c53ae0ad5f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b5b91cf82136f2959b6478a685c25e40f397fcf16756705b1a28fe90b322fc76"
+  },
+  "nodeGroups": [],
+  "id": "Aee7013hMM96Nf8V",
+  "tags": []
+}

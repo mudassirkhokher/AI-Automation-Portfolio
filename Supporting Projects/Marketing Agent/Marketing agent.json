@@ -1,0 +1,624 @@
+{
+  "name": "Marketing agent",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "LinkedIn Post Generator & Uploader",
+        "formDescription": "Fill out these fields and you'll have a full LinkedIn post ready to go in a minute. ",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Topic of Post",
+              "placeholder": "Robots",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Target Audience",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -1152,
+        176
+      ],
+      "id": "6c45c7ae-7bcf-4ef4-8d8f-c2ae69459cc3",
+      "name": "On form submission",
+      "webhookId": "1b9c8736-bb1d-4659-864a-35b83d484b13"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -176,
+        448
+      ],
+      "id": "4be3e62e-fd0f-499b-90bf-348254be3797",
+      "name": "OpenAI Chat Model"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool to search the web. ",
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"query\": \"{searchTerm}\",\n  \"topic\": \"general\",\n  \"search_depth\": \"advanced\",\n  \"chunks_per_source\": 3,\n  \"max_results\": 1,\n  \"time_range\": null,\n  \"days\": 7,\n  \"include_answer\": true,\n  \"include_raw_content\": false,\n  \"include_images\": false,\n  \"include_image_descriptions\": false,\n  \"include_domains\": [],\n  \"exclude_domains\": []\n}",
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "searchTerm",
+              "description": "What the user is searching for. "
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        -752,
+        448
+      ],
+      "id": "8dad23f7-dc9f-4a02-b7f8-dca9fb26600c",
+      "name": "Tavily",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "F1KiApPff5rKRkJW",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Social Media Post: \n{{ $json.output }}",
+        "options": {
+          "systemMessage": "=# Overview\nYou are an AI agent that transforms Social media posts into visual prompt descriptions for generating graphic marketing materials. These visuals are designed to be paired with the post on Social accounts, helping communicate the message in a visually engaging, brand-aligned way.\n\n## Objective:\n- Read and analyze the given Social media post.\n- Identify the main message, insight, or takeaway from the post.\n- Create a clear and compelling graphic prompt that can be used with a text-to-image generator.\n- The result should be a marketing-style graphic or hyperrealistic photo — that:\n1) Visually supports or illustrates the key idea of the post\n2) Looks appropriate for use in a professional  feed\n3) Feels polished, modern, and engaging\n\n## Output Instructions:\n- Output only the final image prompt. Do not output quotation marks.\n- Do not repeat or rephrase the  post.\n- Do not add any explanations or extra content — just the image prompt.\n- Never leave things blank like \"Header area reserved for customizable callout text\"\n- Output numeric stats when available in the original post\n\n## Style Guidelines:\n- Think like a brand designer or marketing creative.\n- Visuals may include: text, charts, icons, abstract shapes, overlays, modern illustrations, motion-like effects, bold typography elements (described, not rendered), or metaphorical concepts.\n- You can mention layout suggestions (e.g., \"split screen design,\" \"header with bold title and subtle background illustration\").\n- Assume the output will be generated using AI image tools — your prompt should guide those tools effectively.\n\n## Example Prompt Format:\nA modern flat-style graphic showing a human brain connected to mechanical gears, representing the fusion of AI and automation. Minimalist background, soft gradients, clean sans-serif text placement space at the top.\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -320,
+        176
+      ],
+      "id": "9ea6d5f8-e993-4043-9970-97cd1d9699e0",
+      "name": "Image Prompt Agent"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "prompt": "={{ $json.output }}",
+        "options": {
+          "dalleQuality": "standard",
+          "size": "1024x1024",
+          "returnImageUrls": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        64,
+        464
+      ],
+      "id": "5ad0aa52-2008-4c0f-acff-816116f5964d",
+      "name": "OpenAI"
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v22.0",
+        "node": "=17841441334930416",
+        "edge": "media",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "caption",
+                "value": "={{ $('Social Media Post Agent').item.json.output }}"
+              },
+              {
+                "name": "image_url",
+                "value": "={{ $json.url }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        608,
+        496
+      ],
+      "id": "0e06bb07-e437-414c-92ff-c764f2cea4ed",
+      "name": "Creating Container ID",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "OEkg9vZ9F3YE6oBn",
+          "name": "Insta Graph account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v22.0",
+        "node": "=17841441334930416",
+        "edge": "media_publish",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "image_url",
+                "value": "={{ $('OpenAI').item.json.url }}"
+              },
+              {
+                "name": "caption",
+                "value": "={{ $('Social Media Post Agent').item.json.output }}"
+              },
+              {
+                "name": "creation_id",
+                "value": "={{ $json.id }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        816,
+        496
+      ],
+      "id": "58a9c82f-f86c-4025-8d35-759f14ce054d",
+      "name": "Post to Instagram",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "OEkg9vZ9F3YE6oBn",
+          "name": "Insta Graph account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "prompt": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        64,
+        -112
+      ],
+      "id": "540645dd-d46b-4ea2-a47e-0d887d980aa9",
+      "name": "OpenAI1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Topic of Post: {{ $json['Topic of Post'] }}\n\nTarget Audience: {{ $json['Target Audience'] }}",
+        "options": {
+          "systemMessage": "=# Overview\nYou are an AI agent specialized in creating professional, educational, and engaging Social media posts based on any topic provided by the user.Always use the current date :{{ $now.format('yyyy-MM-dd')}}.\n\n## Objectives:\nAlways begin by conducting a real-time search using the Tavily tool to gather the most accurate , up-to-date information on the topic. The post should be written to appeal to the provided target audience.\n\nBased on your research, generate a well-structured Social post that:\n- Starts with an engaging hook\n- Professional in tone\n- Clear and easy to read\n- Educational and insightful\n- Light on emojis (use only when highly relevant and minimal)\n- Includes proper source attribution (e.g., “according to [source]”)\n- Contains relevant hashtags to improve visibility\n- Ends with a clear call to action (e.g., asking for thoughts, feedback, or shares)\n\n## Output Instructions:\n- Your ONLY output should be the final Social media post text.\n- Do not include explanations, notes, or anything beyond the post itself.\n\n## Example Workflow:\n1) Receive a topic (e.g., “The ROI of warehouse automation”)\n2) Use Tavily to search and gather recent information or case studies\n3) Draft a Social media post using that research\n4) Format it with source citations, clean structure, optional hashtags, and a call to action"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -720,
+        176
+      ],
+      "id": "070a8b81-07b3-42d4-8390-4f776be4bf3a",
+      "name": "Social Media Post Agent"
+    },
+    {
+      "parameters": {
+        "content": "## Trigger",
+        "height": 200,
+        "width": 280
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1232,
+        112
+      ],
+      "id": "41d52135-7ecb-4322-8c6b-e18d9d2b0b43",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Generate Post and Prompt for image.",
+        "height": 560,
+        "width": 760,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        48
+      ],
+      "id": "a787e6c2-39be-4850-88a3-461fbf1e8130",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v22.0",
+        "node": "me",
+        "edge": "photos",
+        "sendBinaryData": true,
+        "binaryPropertyName": "data",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "message",
+                "value": "={{ $('Social Media Post Agent').item.json.output }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        624,
+        128
+      ],
+      "id": "6fba6820-889a-47ff-813f-b32315fbf89e",
+      "name": "Post to Facebook",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "iGjB5TOrouwM8JWG",
+          "name": "Facebook Graph account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "person": "cRJMFfSuiU",
+        "text": "={{ $('Social Media Post Agent').item.json.output }}",
+        "shareMediaCategory": "IMAGE",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        624,
+        -256
+      ],
+      "id": "3926aa72-d80d-4604-8730-b19494a909ab",
+      "name": "Post to linkedin",
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "57VPL8EGAZp4eHH1",
+          "name": "LinkedIn account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Creating image for Linkedin & Facebook",
+        "height": 388,
+        "width": 368,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        32,
+        -224
+      ],
+      "id": "def25a83-e7f5-426d-85c3-0cb41bcbfa17",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Creating image for Instagram",
+        "height": 388,
+        "width": 368,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        32,
+        224
+      ],
+      "id": "38c01935-01c2-47ea-916c-c30b177da36d",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Post to Instagram",
+        "height": 260,
+        "width": 480,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        544,
+        416
+      ],
+      "id": "f3b576f8-8a7c-42ef-b0ad-9029e8593949",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## Post to Facebook",
+        "height": 260,
+        "width": 360,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        496,
+        64
+      ],
+      "id": "614c57c4-b2b4-4b5f-b47e-7c10535e286b",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## Post to Linkedin",
+        "height": 260,
+        "width": 360,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        496,
+        -336
+      ],
+      "id": "0ee4baec-7e5c-4811-af99-271754070670",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        448
+      ],
+      "id": "13c6abbd-8eab-409a-86f9-8851f0d29acd",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "yO1vJ2MxYVI3iyzl",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "prompt": "={{ $json.output }}"
+      },
+      "type": "@picsart/n8n-nodes-picsart-creative-apis.picsartGeneration",
+      "typeVersion": 1,
+      "position": [
+        208,
+        -16
+      ],
+      "id": "fe021b4f-c00e-4fdc-83b4-ff256c0816fe",
+      "name": "Picsart Generative AI-Hub",
+      "credentials": {
+        "picsartApi": {
+          "id": "tCEROKCYzWfcufnQ",
+          "name": "Picsart account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "prompt": "={{ $json.output }}"
+      },
+      "type": "@picsart/n8n-nodes-picsart-creative-apis.picsartGeneration",
+      "typeVersion": 1,
+      "position": [
+        224,
+        336
+      ],
+      "id": "44cc0046-1542-446b-be30-b00abc2c7e1e",
+      "name": "Picsart Generative AI-Hub1",
+      "credentials": {
+        "picsartApi": {
+          "id": "tCEROKCYzWfcufnQ",
+          "name": "Picsart account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Image Prompt Agent": [
+      {
+        "json": {
+          "output": "A modern infographic-style graphic with a sleek dark‑green gradient background (evoking Saudi colors) and bold sans‑serif header at the top: “Bulk Labour Recruitment Challenges in Saudi Arabia”. The design is split into five vertical panels, each with a clean line‑icon and concise data callout: \n\n1. Panel 1 – government building with checklist icon, text: “Saudization (Nitaqat) compliance – 12% rise in audits (2024)”.  \n2. Panel 2 – passport/visa stamp icon, text: “Visa & sponsorship bottlenecks – extended processing times under new Kafala rules”.  \n3. Panel 3 – mismatched puzzle pieces icon, text: “Talent‑pool mismatch – 28% shortfall in qualified local candidates”.  \n4. Panel 4 – truck and housing icon, text: “Logistical coordination – 15‑20% onboarding delays”.  \n5. Panel 5 – hourglass with workers icon, text: “Retention risk – average 18‑month tenure for foreign workers”.  \n\nEach panel uses minimalist flat‑style illustrations, gold accent highlights, and space for brief bullet points. Clean white space separates sections, with subtle grid lines for a professional LinkedIn‑ready look."
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Social Media Post Agent": [
+      {
+        "json": {
+          "output": "🚀 **Why Companies Struggle with Bulk Labour Recruitment in Saudi Arabia** 🚀  \n\nHiring large numbers of workers isn’t just a numbers game—Saudi firms face a unique set of hurdles that make mass recruitment especially tough:\n\n1️⃣ **Saudization (Nitaqat) compliance** – Companies must meet strict Saudi‑national quota targets, and the penalty for non‑compliance can be severe. According to the Ministry of Human Resources & Social Development, 2024 saw a 12% rise in audits of firms with high foreign‑worker ratios【source: Ministry HR Report 2024】.  \n\n2️⃣ **Visa & sponsorship bottlenecks** – Processing work visas for hundreds of expatriates can take weeks, and recent changes to the “Kafala” system have added extra documentation steps, slowing onboarding timelines.  \n\n3️⃣ **Talent‑pool mismatch** – While the Kingdom’s labor market is expanding, there remains a gap between the skills needed for sectors like construction, manufacturing, and logistics and the available Saudi talent pool. GulfTalent’s 2024 Saudi Labour Market Survey notes a 28% shortfall in qualified local candidates for bulk‑hiring projects.  \n\n4️⃣ **Logistical coordination** – Managing transportation, accommodation, and on‑site training for large groups requires robust HR infrastructure. Companies without dedicated bulk‑recruitment teams often see onboarding delays of 15‑20% 【source: McKinsey Saudi Workforce Study 2024】.  \n\n5️⃣ **Retention & turnover risk** – High turnover rates among temporary foreign workers (average 18 months) increase the cost of continuous re‑recruitment, especially when training investments are amortized over short employment periods.  \n\n🔑 **Bottom line:** Without specialized recruitment processes, digital talent‑management platforms, and a clear Saudization strategy, bulk hiring can quickly become a costly, compliance‑risk‑laden endeavor.\n\n💡 **What’s your experience?** Share the biggest obstacle your organization has faced in large‑scale hiring, or let us know which tools have helped you streamline the process. #SaudiHR #Saudization #BulkHiring #TalentAcquisition #WorkforceStrategy #HRLeadership"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "On form submission": [
+      {
+        "json": {
+          "Topic of Post": "why bulk labour recruitment is difficult by company itself",
+          "Target Audience": "Saudi HR and CEO",
+          "submittedAt": "2026-07-12T17:26:15.469+05:00",
+          "formMode": "test"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Social Media Post Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Tavily": {
+      "ai_tool": [
+        [
+          {
+            "node": "Social Media Post Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Prompt Agent": {
+      "main": [
+        [
+          {
+            "node": "Picsart Generative AI-Hub",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Picsart Generative AI-Hub1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        []
+      ]
+    },
+    "Creating Container ID": {
+      "main": [
+        [
+          {
+            "node": "Post to Instagram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI1": {
+      "main": [
+        []
+      ]
+    },
+    "Social Media Post Agent": {
+      "main": [
+        [
+          {
+            "node": "Image Prompt Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Social Media Post Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Image Prompt Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Picsart Generative AI-Hub": {
+      "main": [
+        [
+          {
+            "node": "Post to linkedin",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Post to Facebook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Picsart Generative AI-Hub1": {
+      "main": [
+        [
+          {
+            "node": "Creating Container ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "cc55e429-b0c2-47c8-9a3f-25d5c928dfe0",
+  "meta": {
+    "instanceId": "b5b91cf82136f2959b6478a685c25e40f397fcf16756705b1a28fe90b322fc76"
+  },
+  "nodeGroups": [],
+  "id": "HEkBqbnMvkRisGst",
+  "tags": []
+}

@@ -1,0 +1,192 @@
+{
+  "name": "First Voice Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "n8n_voice_agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -752,
+        -272
+      ],
+      "id": "bb2298dd-f1a3-4673-9010-db3a7f00abb9",
+      "name": "Webhook",
+      "webhookId": "f1932c47-7a0f-46b5-8b49-43dc3773394e"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Email for: {{ $json.body.to }}\nEmail content: {{ $json.body.emailContent }}",
+        "options": {
+          "systemMessage": "=# Overview\nYou are an AI agent responsible for drafting and sending professional emails based on user instructions. You have access to two tools: `ContactData` to find the recipient's email address and `sendEmail` to send the email.\n\n---\n\n## Tools\n\n- **ContactData**: Retrieves the recipient's email address based on their name.\n  **Input**: Name (e.g., \"John Doe\").\n  **Output**: Email address (e.g., \"johndoe@example.com\").\n\n- **sendEmail**: Sends an email with a subject and body.\n  **Input**:\n  - `recipient`: Email address (e.g., \"johndoe@example.com\").\n  - `subject`: Email subject (e.g., \"Meeting Request\").\n  - `body`: Email body (e.g., \"Hi John, meeting is set for Tuesday.\")."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -544,
+        -272
+      ],
+      "id": "3b6133df-bb07-407b-a441-1ffb707e63a7",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -656,
+        32
+      ],
+      "id": "af87dece-3989-42a6-b2f6-0c49096a2a69",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "yO1vJ2MxYVI3iyzl",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To', ``, 'string') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        -256,
+        32
+      ],
+      "id": "9f467732-443f-4800-b405-3d5664dfcc64",
+      "name": "Send a message in Gmail",
+      "webhookId": "76e1e6c4-af73-4869-9965-c6669d74e959",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "oJJU1N9n4K3xNtGF",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -192,
+        -272
+      ],
+      "id": "d99fe854-fb0b-4da7-8d5e-af4416530bdc",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Limit', ``, 'number') }}",
+        "fields": [
+          "emailAddresses",
+          "names"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleContactsTool",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        32
+      ],
+      "id": "b4b518df-886c-47a6-b44c-beeac9b0127e",
+      "name": "ContactData",
+      "credentials": {
+        "googleContactsOAuth2Api": {
+          "id": "EtfiFF6UqwUfdNJn",
+          "name": "Google Contacts account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ContactData": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "99805ca2-bf81-4528-a261-22cea9009322",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b5b91cf82136f2959b6478a685c25e40f397fcf16756705b1a28fe90b322fc76"
+  },
+  "nodeGroups": [],
+  "id": "fShBg3DxoA4TZQkA",
+  "tags": []
+}
