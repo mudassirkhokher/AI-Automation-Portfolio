@@ -192,3 +192,41 @@ The following projects provide examples of how I apply AI, automation, integrati
 - Includes PostgreSQL-based chat memory and document update/delete handling.
 
 These selected projects demonstrate experience with **AI-assisted decision-making, workflow orchestration, data validation, API integrations, conversational agents, lead automation, and retrieval-augmented generation**.
+
+---
+
+## Supporting Projects
+
+The **Supporting Projects** folder contains additional n8n automation, AI, integration, and workflow experiments that complement the five main portfolio projects.
+
+These projects demonstrate practical experience with:
+
+- Workflow design and orchestration using **n8n**
+- AI model integration into business processes
+- Webhook-based automation and API integration
+- Data validation, transformation, and duplicate checking
+- Email and communication automation
+- Human-in-the-loop review and approval workflows
+- Lead generation, enrichment, and collection
+- Document and invoice processing
+- Early experimentation with voice agents and RAG systems
+
+### Supporting Project Examples
+
+| Supporting Project | Focus |
+|---|---|
+| **Automated Cold Email Campaign** | Email campaign automation, verification, and SMTP workflows |
+| **Basic Chatbot with Google Search** | Search-enabled chatbot and AI responses |
+| **Classify Emails and Send Replies** | Email classification with supervised human review |
+| **Client Onboarding** | Forms, notifications, and onboarding process automation |
+| **First Voice Agent** | Voice AI and conversational workflow experimentation |
+| **Google Maps Email Scraper** | Business data collection and email extraction |
+| **Human in the Loop** | Human approval and review workflows |
+| **Invoice Parser** | Invoice data extraction and structured processing |
+| **Lead Collection** | Webhook-based lead intake and duplicate prevention |
+| **LinkedIn Job Hunting** | Job-search workflow experimentation and data processing |
+| **RAG Pipeline and Chatbot** | Document processing, retrieval-augmented generation, and AI chatbot workflows |
+
+The supporting projects are presented as additional and experimental work. Some workflows may require external credentials, API keys, or service-specific configuration before execution.
+
+[View the complete Supporting Projects index](./Supporting%20Projects/README.md)
