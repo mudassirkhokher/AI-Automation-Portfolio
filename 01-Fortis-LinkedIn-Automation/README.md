@@ -229,7 +229,7 @@ The system maintains processing statuses and campaign records across the workflo
 ```text
 01-Fortis-LinkedIn-Automation/
 │
-├── workflows/
+├── Workflows/
 │   ├── WF01 Lead Intake & Queue Manager
 │   ├── WF02 Research Preparation
 │   ├── WF02A Research Dispatcher
@@ -238,7 +238,7 @@ The system maintains processing statuses and campaign records across the workflo
 │   ├── WF04 Campaign Input
 │   └── WF05 Read Phantom Results
 │
-├── screenshots/
+├── Screenshots/
 │
 └── README.md
 ```
@@ -289,7 +289,7 @@ The workflow demonstrates the automation architecture and implementation; actual
 
 ## Screenshots
 
-Selected screenshots are available in the [`screenshots`](./screenshots) directory.
+Selected screenshots are available in the [`Screenshots`](./Screenshots) directory.
 
 ---
 
