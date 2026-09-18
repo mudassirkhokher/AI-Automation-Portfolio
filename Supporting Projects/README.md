@@ -18,7 +18,16 @@ These projects demonstrate practical experience with workflow orchestration, API
 | [Invoice Parser](./Invoice%20Parser) | Invoice data extraction and processing | Document parsing, structured data, automation |
 | [Lead Collection](./Lead%20Collection-%20Webhook%20to%20Google%20Sheet%20(Duplicate%20check)) | Lead intake and duplicate prevention | Webhooks, Google Sheets, validation |
 | [LinkedIn Job Hunting](./Linkedin%20Job%20Hunting1) | Job-search workflow experimentation | LinkedIn, data processing, automation |
-| [RAG Pipeline and Chatbot](./%28storry%20tech%29%20RAG%20pipline%20and%20chatbot.json) | Retrieval-augmented generation workflow | RAG, document processing, AI chatbot |
+| [LinkedIn Posting Agent](./Linkedin%20Posting%20Agent) | LinkedIn content workflow | n8n, content automation |
+| [Loveable Demo](./Loveable-Demo) | Prototype integration experiment | n8n, prototyping |
+| [Marketing Agent](./Marketing%20Agent) | Marketing workflow experimentation | AI, automation, content workflows |
+| [Slack Bot](./Slack%20Bot) | Slack-based automation | Slack, n8n, messaging workflows |
+| [StorryDotTech RAG Agent](./StorryDotTech%20RAG%20Agent) | RAG assistant workflow | RAG, embeddings, AI agent |
+| [VEO3](./VEO3) | Media-generation workflow experiment | AI media workflow |
+| [Weather Bot](./Weather%20Bot) | Weather workflow with parent/child workflows | n8n, workflow chaining, APIs |
+| [WhatsApp Lead Gen](./WhatsApp%20Lead%20Gen) | WhatsApp lead-generation workflow | WhatsApp, lead capture, automation |
+| [WhatsApp Agent](./Whatsapp%20Agent%20(Text,%20Audio,%20Image)) | Multimodal WhatsApp agent | Text, audio, image processing |
+| [WhatsApp Real Estate Lead-Gen Agent](./WhatsApp%20Real%20Estate%20Lead-Gen%20AI%20Agent%20%E2%80%93%20Lahore) | Real-estate lead qualification | WhatsApp, AI agent, Google Calendar |
 
 ## What These Projects Demonstrate
 
@@ -30,7 +39,7 @@ These projects demonstrate practical experience with workflow orchestration, API
 - Human-in-the-loop review and approval
 - Lead generation, enrichment, and collection
 - Document and invoice processing
-- Early experimentation with voice agents and RAG systems
+- Early experimentation with voice agents, RAG, messaging, and media workflows
 
 ## Notes
 
@@ -46,5 +55,5 @@ For the most detailed project documentation, visit the main portfolio sections:
 - [Fortis LinkedIn Automation](../01-Fortis-LinkedIn-Automation)
 - [AI Sales Intelligence](../02-AI-Sales-Intelligence)
 - [Employee Onboarding](../03-Employee-Onboarding)
-- [WhatsApp Real Estate Lead-Gen Agent](../04-WhatsApp-Real-Estate-Lead-Gen-Agent)
+- [WhatsApp Real Estate Lead-Gen Agent](../04-WhatsApp-Real-Estate-Agent)
 - [RAG Knowledge Assistant](../05-RAG-Knowledge-Assistant)
