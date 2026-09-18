@@ -149,3 +149,46 @@ This repository contains selected examples of my AI automation work.
 The workflows in this repository are presented as portfolio and demonstration projects. Some integrations may require external services, credentials, configuration, or environment-specific setup before execution.
 
 Client-specific information and sensitive configuration should not be considered part of the publicly shared examples.
+
+---
+
+## Selected Projects — Implementation Highlights
+
+The following projects provide examples of how I apply AI, automation, integrations, and structured workflow design to practical business use cases.
+
+### 1. Fortis LinkedIn Automation
+
+- Automates lead intake, research, personalization, and campaign processing.
+- Uses OpenAI for personalized messaging based on researched information.
+- Integrates PhantomBuster and Google Sheets for LinkedIn research and campaign tracking.
+- Uses modular workflows with queue management, status tracking, and audit visibility.
+
+### 2. AI Sales Intelligence & CRM
+
+- Performs company and lead research using external sources.
+- Extracts research evidence and enriches lead records with AI.
+- Uses Python for additional processing and deterministic lead scoring.
+- Demonstrates source deduplication, structured outputs, and classification logic.
+
+### 3. Employee Onboarding & IT Provisioning
+
+- Validates new employee information and checks for duplicate records.
+- Routes onboarding tasks based on department and workflow conditions.
+- Automates welcome emails, orientation scheduling, and manager notifications.
+- Tracks onboarding activities using connected business tools.
+
+### 4. WhatsApp Real Estate Lead-Gen Agent
+
+- Receives and processes incoming WhatsApp conversations through a webhook.
+- Extracts lead information and maintains conversation context.
+- Uses an AI Agent for conversational qualification and structured outputs.
+- Supports deterministic qualification, Google Calendar booking, broker notifications, and follow-up paths.
+
+### 5. RAG Knowledge Assistant
+
+- Processes documents from Google Drive for knowledge retrieval.
+- Generates embeddings using Gemini and stores them in Supabase Vector Store.
+- Uses an n8n AI Agent to retrieve relevant information and generate responses.
+- Includes PostgreSQL-based chat memory and document update/delete handling.
+
+These selected projects demonstrate experience with **AI-assisted decision-making, workflow orchestration, data validation, API integrations, conversational agents, lead automation, and retrieval-augmented generation**.
